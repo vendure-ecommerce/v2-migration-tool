@@ -13,7 +13,8 @@
     "migration:generate": "ts-node migration generate",
     "migration:run": "ts-node migration run",
     "migration:revert": "ts-node migration revert",
-    "populate": "ts-node ./src/populate.ts"
+    "populate": "ts-node ./src/populate.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "@vendure/admin-ui-plugin": "1.9.3",
@@ -26,7 +27,11 @@
   },
   "devDependencies": {
     "@vendure/create": "^1.9.3",
+    "@vendure/testing": "^1.9.3",
     "concurrently": "7.6.0",
-    "ts-node": "10.9.1"
+    "graphql-tag": "^2.12.6",
+    "prettier": "^2.8.6",
+    "ts-node": "10.9.1",
+    "vitest": "^0.29.7"
   }
 }
