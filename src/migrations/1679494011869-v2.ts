@@ -220,18 +220,49 @@ export class v21679494011869 implements MigrationInterface {
 
         // For each OrderItem that has a refundId, create an OrderLineReference related to the same Refund, but
         // with the quantity equal to the number of OrderItems sharing that refundId
-        const orderItemsWithRefundId = await queryRunner.query(`SELECT "id", "refundId" FROM "order_item" WHERE "refundId" IS NOT NULL`, undefined);
-        for (const orderItem of orderItemsWithRefundId) {
-            const orderItems = await queryRunner.query(`SELECT COUNT(*) FROM "order_item" WHERE "refundId" = ${orderItem.refundId}`, undefined);
-            await queryRunner.query(`INSERT INTO "order_line_reference" ("createdAt", "updatedAt", "orderLineId", "type", "quantity", "refundId")
-                                            VALUES (NOW(), NOW(), ${orderItem.id}, 'REFUND', ${orderItems}, ${orderItem.refundId})`, undefined);
-        }
+        await queryRunner.query(`INSERT INTO order_line_reference ("createdAt", "updatedAt", "orderLineId", "discriminator", "quantity", "quantity", "fulfillmentId")
+                                     SELECT oi."createdAt" AS "createdAt",
+                                            oi."updatedAt" AS "updatedAt",
+                                            ol."id" AS "orderLineId",
+                                            'RefundLine' AS "discriminator",
+                                            COUNT(oi."lineId") AS "quantity",
+                                            oi."refundId" AS "refundId"
+                                     FROM "order_line" ol
+                                     JOIN "order_item" oi ON oi."lineId" = ol."id"
+                                     WHERE oi."refundId" IS NOT NULL
+                                     GROUP BY oi."refundId", ol."id", oi."lineId", oi."createdAt", oi."updatedAt";`, undefined);
 
 
-        // TODO:
-        // * Fulfillment associated with new FulfillmentLine, add reference to Fulfillment on Order entity
-        // * OrderModification associated with new OrderModificationLine
 
+
+        // Fulfillment associated with new FulfillmentLine, add reference to Fulfillment on Order entity
+        await queryRunner.query(`INSERT INTO order_line_reference ("createdAt", "updatedAt", "orderLineId", "discriminator", "quantity", "quantity", "fulfillmentId")
+                                 SELECT fulfillment."createdAt" AS "createdAt",
+                                        fulfillment."updatedAt" AS "updatedAt",
+                                        ol."id" AS "orderLineId",
+                                        'FulfillmentLine' AS "discriminator",
+                                        COUNT(oif_fulfillment."fulfillmentId") AS "quantity",
+                                        oif_fulfillment."fulfillmentId" AS "fulfillmentId"
+                                 FROM "order_line" ol
+                                 JOIN "order_item" oi ON oi."lineId" = ol."id"
+                                 JOIN "order_item_fulfillments_fulfillment" oif_fulfillment ON oif_fulfillment."orderItemId" = oi."id"
+                                 JOIN "fulfillment" fulfillment ON oif_fulfillment."fulfillmentId" = fulfillment."id"
+                                 GROUP BY ol."id", oif_fulfillment."fulfillmentId", fulfillment.id;`, undefined);
+
+
+        // OrderModification associated with new OrderModificationLine
+        await queryRunner.query(`INSERT INTO order_line_reference ("createdAt", "updatedAt", "orderLineId", "discriminator", "quantity", "quantity", "modificationId")
+                                 SELECT order_modification."createdAt" AS "createdAt",
+                                        order_modification."updatedAt" AS "updatedAt",
+                                        ol."id" AS "orderLineId",
+                                        'OrderModificationLine' AS "discriminator",
+                                        COUNT(omoi_order_item."orderModificationId") AS "quantity",
+                                        omoi_order_item."orderModificationId" AS "modificationId"
+                                 FROM "order_line" ol
+                                 JOIN "order_item" oi ON oi."lineId" = ol."id"
+                                 JOIN "order_modification_order_items_order_item" omoi_order_item ON omoi_order_item."orderItemId" = oi."id"
+                                 JOIN "order_modification" order_modification ON omoi_order_item."orderModificationId" = order_modification."id"
+                                 GROUP BY ol."id", omoi_order_item."orderModificationId", order_modification.id;`, undefined);
 
 
 
@@ -242,9 +273,12 @@ export class v21679494011869 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "promotion" DROP COLUMN "name"`, undefined);
         await queryRunner.query(`ALTER TABLE "payment_method" DROP COLUMN "name"`, undefined);
         await queryRunner.query(`ALTER TABLE "payment_method" DROP COLUMN "description"`, undefined);
-        // Manually drop the OrderItem table, as it is not managed by TypeORM
+
+        // Manually drop the OrderItem tables, as it is not managed by TypeORM
         // See https://github.com/typeorm/typeorm/issues/7814#issuecomment-1249613977
         await queryRunner.query(`DROP TABLE "order_item"`, undefined);
+        await queryRunner.query(`DROP TABLE "order_item_fulfillments_fulfillment"`, undefined);
+        await queryRunner.query(`DROP TABLE "order_modification_order_items_order_item"`, undefined);
 
     }
 
