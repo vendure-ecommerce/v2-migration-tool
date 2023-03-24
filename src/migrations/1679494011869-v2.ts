@@ -2,7 +2,7 @@ import {MigrationInterface, QueryRunner} from "typeorm";
 
 export class v21679494011869 implements MigrationInterface {
 
-   public async up(queryRunner: QueryRunner): Promise<any> {
+    public async up(queryRunner: QueryRunner): Promise<any> {
         await queryRunner.query(`ALTER TABLE "stock_movement" DROP CONSTRAINT "FK_cbb0990e398bf7713aebdd38482"`, undefined);
         await queryRunner.query(`ALTER TABLE "product_variant_price" DROP CONSTRAINT "FK_e6126cd268aea6e9b31d89af9ab"`, undefined);
         await queryRunner.query(`ALTER TABLE "stock_movement" RENAME COLUMN "orderItemId" TO "stockLocationId"`, undefined);
@@ -29,12 +29,14 @@ export class v21679494011869 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "collection_closure" ("id_ancestor" integer NOT NULL, "id_descendant" integer NOT NULL, CONSTRAINT "PK_9dda38e2273a7744b8f655782a5" PRIMARY KEY ("id_ancestor", "id_descendant"))`, undefined);
         await queryRunner.query(`CREATE INDEX "IDX_c309f8cd152bbeaea08491e0c6" ON "collection_closure" ("id_ancestor") `, undefined);
         await queryRunner.query(`CREATE INDEX "IDX_457784c710f8ac9396010441f6" ON "collection_closure" ("id_descendant") `, undefined);
-        await queryRunner.query(`ALTER TABLE "channel" DROP COLUMN "currencyCode"`, undefined);
-        await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "stockOnHand"`, undefined);
-        await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "stockAllocated"`, undefined);
-        await queryRunner.query(`ALTER TABLE "promotion" DROP COLUMN "name"`, undefined);
-        await queryRunner.query(`ALTER TABLE "payment_method" DROP COLUMN "name"`, undefined);
-        await queryRunner.query(`ALTER TABLE "payment_method" DROP COLUMN "description"`, undefined);
+
+        // =============   We are going to move all the DROP COLUMN statements to the end of the migration ================================
+        // await queryRunner.query(`ALTER TABLE "channel" DROP COLUMN "currencyCode"`, undefined);
+        // await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "stockOnHand"`, undefined);
+        // await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "stockAllocated"`, undefined);
+        // await queryRunner.query(`ALTER TABLE "promotion" DROP COLUMN "name"`, undefined);
+        // await queryRunner.query(`ALTER TABLE "payment_method" DROP COLUMN "name"`, undefined);
+        // await queryRunner.query(`ALTER TABLE "payment_method" DROP COLUMN "description"`, undefined);
         await queryRunner.query(`ALTER TABLE "channel" ADD "description" character varying DEFAULT ''`, undefined);
         await queryRunner.query(`ALTER TABLE "channel" ADD "defaultCurrencyCode" character varying NOT NULL`, undefined);
         await queryRunner.query(`ALTER TABLE "channel" ADD "sellerId" integer`, undefined);
@@ -130,9 +132,118 @@ export class v21679494011869 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "order_fulfillments_fulfillment" ADD CONSTRAINT "FK_4add5a5796e1582dec2877b2898" FOREIGN KEY ("fulfillmentId") REFERENCES "fulfillment"("id") ON DELETE CASCADE ON UPDATE CASCADE`, undefined);
         await queryRunner.query(`ALTER TABLE "collection_closure" ADD CONSTRAINT "FK_c309f8cd152bbeaea08491e0c66" FOREIGN KEY ("id_ancestor") REFERENCES "collection"("id") ON DELETE CASCADE ON UPDATE NO ACTION`, undefined);
         await queryRunner.query(`ALTER TABLE "collection_closure" ADD CONSTRAINT "FK_457784c710f8ac9396010441f6c" FOREIGN KEY ("id_descendant") REFERENCES "collection"("id") ON DELETE CASCADE ON UPDATE NO ACTION`, undefined);
-   }
 
-   public async down(queryRunner: QueryRunner): Promise<any> {
+        // =================== Custom migration starts here ===========================================
+
+        // Set a default language code for the now-translatable entities, Promotion and PaymentMethod
+        const languageCode = 'en';
+
+        // Transfer Promotion name to new translation table
+        await queryRunner.query(`INSERT INTO "promotion_translation" ("createdAt", "updatedAt", "languageCode", "name", "baseId") 
+                                         SELECT "createdAt", "updatedAt", '${languageCode}', "name", "description", "id" FROM "promotion"`, undefined);
+        // Transfer PaymentMethod name and description to new translation table
+        await queryRunner.query(`INSERT INTO "payment_method_translation" ("createdAt", "updatedAt", "languageCode", "name", "description", "baseId")
+                                            SELECT "createdAt", "updatedAt", '${languageCode}', "name", "description", "id" FROM "payment_method"`, undefined);
+
+        // Transfer the Channel.currencyCode to the new Channel.defaultCurrencyCode
+        await queryRunner.query(`UPDATE "channel" SET "defaultCurrencyCode" = "currencyCode"`, undefined);
+
+        // Create a default StockLocation
+        const defaultStockLocationName = 'Default Stock Location';
+        const defaultStockLocationId = await queryRunner.query(`INSERT INTO "stock_location" ("createdAt", "updatedAt", "name", "description") 
+                                                                        VALUES (DEFAULT, DEFAULT, '${defaultStockLocationName}) RETURNING id', '')`, undefined);
+        // Assign the default StockLocation to all Channels
+        await queryRunner.query(`INSERT INTO "stock_location_channels_channel" ("stockLocationId", "channelId") 
+                                            SELECT ${defaultStockLocationId}, "id" FROM "channel"`, undefined);
+
+        // Set the default StockLocation to all StockMovements
+        await queryRunner.query(`UPDATE "stock_movement" SET "stockLocationId" = ${defaultStockLocationId}`, undefined);
+
+        // Create a StockLevel for every ProductVariant
+        await queryRunner.query(`INSERT INTO "stock_level" ("createdAt", "updatedAt", "productVariantId", "stockLocationId", "stockOnHand", "stockAllocated")
+                                            SELECT "createdAt", "updatedAt", "id", ${defaultStockLocationId}, "stockOnHand", "stockAllocated" FROM "product_variant"`, undefined);
+
+        // For each OrderLine, we need to count the number of OrderItems, and set that number as the `quantity` and `orderPlacedQuantity` on the OrderLine
+        const orderLines = await queryRunner.query(`SELECT "id", "order_id" FROM "order_line"`, undefined);
+        for (const orderLine of orderLines) {
+            const orderItems = await queryRunner.query(`SELECT COUNT(*) FROM "order_item" WHERE "lineId" = ${orderLine.id}`, undefined);
+            // get first OrderItem for this OrderLine
+            const orderItem = await queryRunner.query(`SELECT * FROM "order_item" WHERE "lineId" = ${orderLine.id} LIMIT 1`, undefined);
+            await queryRunner.query(`UPDATE 
+                            "order_line" SET "quantity" = ${orderItems}, 
+                            "orderPlacedQuantity" = ${orderItems}
+                            "listPriceIncludesTax" = ${orderItem.listPriceIncludesTax},
+                            "adjustments" = ${orderItem.adjustments},
+                            "taxLines" = ${orderItem.taxLines},
+                            "initialListPrice" = ${orderItem.initialListPrice},
+                            "listPrice" = ${orderItem.listPrice},
+                            WHERE "id" = ${orderLine.id}`, undefined);
+        }
+
+        // For each Cancellation, we need to associate it with the OrderItem that it is cancelling
+        const cancellations = await queryRunner.query(`SELECT "sm"."id", "sm"."quantity", "sm"."orderItemId", "oi"."lineId" AS "orderLineId" FROM "stock_movement" AS "sm"
+                                                        INNER JOIN "order_item" AS "oi" ON "stock_movement"."orderItemId" = "order_item"."id" WHERE "type" = 'CANCELLATION' GROUP BY "orderItemId"`, undefined);
+        const seenCancellationLineIds = new Set<number | string>();
+        for (const cancellation of cancellations) {
+            if (seenCancellationLineIds.has(cancellation.orderLineId)) {
+                // We have already created a Cancellation for this OrderLine, so we can delete this row
+                await queryRunner.query(`DELETE FROM "stock_movement" WHERE "id" = ${cancellation.id}`, undefined);
+            } else {
+                // Update the Cancellation to set the quantity to the number of OrderItems in the OrderLine
+                await queryRunner.query(`UPDATE "stock_movement" 
+                                         SET "orderLineId" = ${cancellation.orderLineId}, 
+                                             "quantity" = (SELECT COUNT(*) FROM "order_item" AS "oi" INNER JOIN "stock_movement" AS "sm" 
+                                                                WHERE "oi"."orderLineId" = ${cancellation.orderLineId} AND  "sm"."type" = 'CANCELLATION')
+                                              WHERE "stock_movement"."id" = ${cancellation.id}`, undefined);
+                seenCancellationLineIds.add(cancellation.orderLineId);
+            }
+        }
+
+        // For each Release, we need to associate it with the OrderItem that it is releasing
+        const releases = await queryRunner.query(`SELECT "sm"."id", "sm"."quantity", "sm"."orderItemId", "oi"."lineId" AS "orderLineId" FROM "stock_movement" AS "sm"
+                                                        INNER JOIN "order_item" AS "oi" ON "stock_movement"."orderItemId" = "order_item"."id" WHERE "type" = 'RELEASE' GROUP BY "orderItemId"`, undefined);
+        const seenReleaseLineIds = new Set<number | string>();
+        for (const release of releases) {
+            if (seenReleaseLineIds.has(release.orderLineId)) {
+                // We have already created a Release for this OrderLine, so we can delete this row
+                await queryRunner.query(`DELETE FROM "stock_movement" WHERE "id" = ${release.id}`, undefined);
+            } else {
+                // Update the Release to set the quantity to the number of OrderItems in the OrderLine
+                await queryRunner.query(`UPDATE "stock_movement" 
+                                         SET "orderLineId" = ${release.orderLineId}, 
+                                             "quantity" = (SELECT COUNT(*) FROM "order_item" AS "oi" INNER JOIN "stock_movement" AS "sm" 
+                                                                WHERE "oi"."orderLineId" = ${release.orderLineId} AND  "sm"."type" = 'CANCELLATION')
+                                              WHERE "stock_movement"."id" = ${release.id}`, undefined);
+                seenReleaseLineIds.add(release.orderLineId);
+            }
+        }
+
+        // For each OrderItem that has a refundId, create an OrderLineReference related to the same Refund, but
+        // with the quantity equal to the number of OrderItems sharing that refundId
+        const orderItemsWithRefundId = await queryRunner.query(`SELECT "id", "refundId" FROM "order_item" WHERE "refundId" IS NOT NULL`, undefined);
+        for (const orderItem of orderItemsWithRefundId) {
+            const orderItems = await queryRunner.query(`SELECT COUNT(*) FROM "order_item" WHERE "refundId" = ${orderItem.refundId}`, undefined);
+            await queryRunner.query(`INSERT INTO "order_line_reference" ("createdAt", "updatedAt", "orderLineId", "type", "quantity", "refundId")
+                                            VALUES (NOW(), NOW(), ${orderItem.id}, 'REFUND', ${orderItems}, ${orderItem.refundId})`, undefined);
+        }
+
+        
+
+
+        // Moved from earlier in the sequence
+        await queryRunner.query(`ALTER TABLE "channel" DROP COLUMN "currencyCode"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "stockOnHand"`, undefined);
+        await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "stockAllocated"`, undefined);
+        await queryRunner.query(`ALTER TABLE "promotion" DROP COLUMN "name"`, undefined);
+        await queryRunner.query(`ALTER TABLE "payment_method" DROP COLUMN "name"`, undefined);
+        await queryRunner.query(`ALTER TABLE "payment_method" DROP COLUMN "description"`, undefined);
+        // Manually drop the OrderItem table, as it is not managed by TypeORM
+        // See https://github.com/typeorm/typeorm/issues/7814#issuecomment-1249613977
+        await queryRunner.query(`DROP TABLE "order_item"`, undefined);
+
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<any> {
         await queryRunner.query(`ALTER TABLE "collection_closure" DROP CONSTRAINT "FK_457784c710f8ac9396010441f6c"`, undefined);
         await queryRunner.query(`ALTER TABLE "collection_closure" DROP CONSTRAINT "FK_c309f8cd152bbeaea08491e0c66"`, undefined);
         await queryRunner.query(`ALTER TABLE "order_fulfillments_fulfillment" DROP CONSTRAINT "FK_4add5a5796e1582dec2877b2898"`, undefined);
@@ -260,6 +371,6 @@ export class v21679494011869 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "stock_movement" RENAME COLUMN "stockLocationId" TO "orderItemId"`, undefined);
         await queryRunner.query(`ALTER TABLE "product_variant_price" ADD CONSTRAINT "FK_e6126cd268aea6e9b31d89af9ab" FOREIGN KEY ("variantId") REFERENCES "product_variant"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`, undefined);
         await queryRunner.query(`ALTER TABLE "stock_movement" ADD CONSTRAINT "FK_cbb0990e398bf7713aebdd38482" FOREIGN KEY ("orderItemId") REFERENCES "order_item"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`, undefined);
-   }
+    }
 
 }
