@@ -227,10 +227,15 @@ export class v21679494011869 implements MigrationInterface {
                                             VALUES (NOW(), NOW(), ${orderItem.id}, 'REFUND', ${orderItems}, ${orderItem.refundId})`, undefined);
         }
 
-        
+
+        // TODO:
+        // * Fulfillment associated with new FulfillmentLine, add reference to Fulfillment on Order entity
+        // * OrderModification associated with new OrderModificationLine
 
 
-        // Moved from earlier in the sequence
+
+
+        // Moved from earlier in the sequence. Now we have migrated all the data, we can drop the old columns
         await queryRunner.query(`ALTER TABLE "channel" DROP COLUMN "currencyCode"`, undefined);
         await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "stockOnHand"`, undefined);
         await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "stockAllocated"`, undefined);
