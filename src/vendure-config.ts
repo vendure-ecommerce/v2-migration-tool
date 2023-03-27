@@ -9,6 +9,7 @@ import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
 import 'dotenv/config';
 import path from 'path';
+import {MigrationV2Plugin} from "./migration-v2.plugin";
 
 const IS_DEV = process.env.APP_ENV === 'dev';
 
@@ -46,8 +47,8 @@ export const config: VendureConfig = {
         // See the README.md "Migrations" section for an explanation of
         // the `synchronize` and `migrations` options.
         synchronize: false,
-        migrations: [path.join(__dirname, './migrations/*.+(js|ts)')],
-        logging: false,
+        migrations: [path.join(__dirname, './migrations/*.+(js|ts)').replace(/\\/g, "/")],
+        logging: ['error', 'schema'],
         database: process.env.DB_NAME,
         schema: process.env.DB_SCHEMA,
         host: process.env.DB_HOST,
@@ -62,6 +63,7 @@ export const config: VendureConfig = {
     // need to be updated. See the "Migrations" section in README.md.
     customFields: {},
     plugins: [
+        MigrationV2Plugin,
         AssetServerPlugin.init({
             route: 'assets',
             assetUploadDir: path.join(__dirname, '../static/assets'),
