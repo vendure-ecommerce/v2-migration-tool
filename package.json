@@ -14,7 +14,8 @@
     "migration:run": "ts-node migration run",
     "migration:revert": "ts-node migration revert",
     "populate": "ts-node ./src/populate.ts",
-    "test": "vitest"
+    "test": "vitest",
+    "migrate": "ts-node migration run"
   },
   "dependencies": {
     "@vendure/admin-ui-plugin": "2.0.0-next.29",
