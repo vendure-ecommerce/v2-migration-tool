@@ -296,29 +296,29 @@ describe("migration tests", () => {
             const {order} = await adminClient.query(gql`
                 query {
                     order(id: "1") {
-                        fulfillmentLines {
-                            fulfillment {
-                                id
-                                method
-                                state
-                                trackingCode
+                        fulfillments {
+                            id
+                            method
+                            state
+                            trackingCode
+                            lines {
+                                orderLineId
+                                quantity
                             }
-                            orderLineId
-                            quantity
                         }
                     }
                 }
             `);
-            expect(order.fulfillmentLines).toEqual([
+            expect(order.fulfillments).toEqual([
                 {
-                    fulfillment: {
-                        id: "1",
-                        method: "UPS",
-                        state: "Pending",
-                        trackingCode: "123456789",
-                    },
-                    orderLineId: "3",
-                    quantity: 2,
+                    id: "1",
+                    method: "UPS",
+                    state: "Pending",
+                    trackingCode: "123456789",
+                    lines: [{
+                        orderLineId: "3",
+                        quantity: 2,
+                    }]
                 },
             ]);
         } else {
@@ -476,7 +476,7 @@ describe("migration tests", () => {
             expect(order.lines).toEqual([
                 {
                     id: "1",
-                    quantity: 1,
+                    quantity: 0,
                     orderPlacedQuantity: 1,
                 },
                 {

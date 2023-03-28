@@ -9,9 +9,10 @@ import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
 import 'dotenv/config';
 import path from 'path';
-import {MigrationV2Plugin} from "./migration-v2.plugin";
 
 const IS_DEV = process.env.APP_ENV === 'dev';
+const isVendureV2 =
+    require("../package.json").dependencies["@vendure/core"].startsWith("2");
 
 export const config: VendureConfig = {
     apiOptions: {
@@ -63,7 +64,7 @@ export const config: VendureConfig = {
     // need to be updated. See the "Migrations" section in README.md.
     customFields: {},
     plugins: [
-        MigrationV2Plugin,
+        ...(isVendureV2 && !process.env.VITEST ? [require('./migration-v2.plugin').MigrationV2Plugin] : []),
         AssetServerPlugin.init({
             route: 'assets',
             assetUploadDir: path.join(__dirname, '../static/assets'),

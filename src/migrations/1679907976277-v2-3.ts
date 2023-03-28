@@ -199,6 +199,11 @@ export class v231679907976277 implements MigrationInterface {
             const orderItems = await q(`SELECT * FROM "order_item" WHERE "lineId" = :lineId`, {lineId: orderLine.id});
             // get first OrderItem for this OrderLine
             const [orderItem] = await q(`SELECT * FROM "order_item" WHERE "lineId" = :lineId AND "cancelled" = false LIMIT 1`, {lineId: orderLine.id});
+            const adjustments = JSON.parse(orderItem?.adjustments ?? "[]");
+            const priceAdjustedAdjustments = adjustments.map((a: any) => {
+                a.amount = a.amount * orderItems.length;
+                return a;
+            });
             await q(
                 `UPDATE 
                  "order_line" SET 
@@ -213,11 +218,11 @@ export class v231679907976277 implements MigrationInterface {
                 {
                     quantity: orderItems.filter((i: any) => !i.cancelled).length,
                     orderPlacedQuantity: orderItems.length,
-                    listPriceIncludesTax: orderItem?.listPriceIncludesTax ?? 0,
-                    adjustments: orderItem?.adjustments ?? "[]",
-                    taxLines: orderItem?.taxLines ?? "[]",
-                    initialListPrice: orderItem?.initialListPrice ?? "[]",
-                    listPrice: orderItem?.listPrice ?? "[]",
+                    listPriceIncludesTax: orderItems[0].listPriceIncludesTax,
+                    adjustments: JSON.stringify(priceAdjustedAdjustments),
+                    taxLines: orderItems[0].taxLines ?? "[]",
+                    initialListPrice: orderItems[0].initialListPrice ?? 0,
+                    listPrice: orderItems[0].listPrice ?? 0,
                     orderLineId: orderLine.id,
                 }
             );
@@ -294,6 +299,15 @@ export class v231679907976277 implements MigrationInterface {
                  JOIN "order_item_fulfillments_fulfillment" oif_fulfillment ON oif_fulfillment."orderItemId" = oi."id"
                  JOIN "fulfillment" fulfillment ON oif_fulfillment."fulfillmentId" = fulfillment."id"
                  GROUP BY ol."id", oif_fulfillment."fulfillmentId", fulfillment.id;`);
+
+        // Also add a corresponding row to the order_fulfillments_fulfillment table
+        await q(`INSERT INTO order_fulfillments_fulfillment ("orderId", "fulfillmentId")
+                    SELECT ol."orderId" AS "orderId",
+                           olr."fulfillmentId" AS "fulfillmentId"
+                    FROM "order_line" ol
+                    JOIN "order_line_reference" olr ON olr."orderLineId" = ol."id"
+                    WHERE olr."discriminator" = 'FulfillmentLine'`);
+
 
         // OrderModification associated with new OrderModificationLine
         await q(`INSERT INTO order_line_reference ("createdAt", "updatedAt", "orderLineId", "discriminator", "quantity", "modificationId")
