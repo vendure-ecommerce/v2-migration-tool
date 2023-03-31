@@ -203,7 +203,7 @@ export class v231679907976277 implements MigrationInterface {
         // For each OrderLine, we need to count the number of OrderItems, and set that number as the `quantity` and `orderPlacedQuantity` on the OrderLine,
         // and transfer other data from the first OrderItem to the OrderLine.
         const orderLineCount = await q(`SELECT COUNT(*) as count FROM "order_line"`);
-        console.log(`Transferring OrderItem data for ${orderLineCount.count} OrderLines (this may take a while)...`);
+        console.log(`Transferring OrderItem data for ${JSON.stringify(orderLineCount)} OrderLines (this may take a while)...`);
         await q(`UPDATE "order_line"
         SET
             "quantity" = (SELECT COUNT(*) FROM "order_item" WHERE "order_line"."id" = "order_item"."lineId" AND NOT "cancelled"),
@@ -215,7 +215,7 @@ export class v231679907976277 implements MigrationInterface {
                 LIMIT 1
             ),
             "adjustments" = COALESCE((
-                SELECT json_build_array(
+                SELECT json_agg(
                     json_build_object(
                         'type', adj->>'type',
                         'adjustmentSource', adj->>'adjustmentSource',
