@@ -21,6 +21,8 @@ export class v231679907976277 implements MigrationInterface {
             return executeQueryWithParams(queryRunner, query, params);
         }
 
+        console.log(`Starting the database migration to Vendure v2!`);
+
         await q(`ALTER TABLE "stock_movement" DROP CONSTRAINT "FK_cbb0990e398bf7713aebdd38482"`);
         await q(`ALTER TABLE "product_variant_price" DROP CONSTRAINT "FK_e6126cd268aea6e9b31d89af9ab"`);
 
@@ -165,6 +167,7 @@ export class v231679907976277 implements MigrationInterface {
         // Transfer PaymentMethod name and description to new translation table
         await q(`INSERT INTO "payment_method_translation" ("createdAt", "updatedAt", "languageCode", "name", "description", "baseId")
                  SELECT "createdAt", "updatedAt", '${languageCode}', "name", "description", "id" FROM "payment_method"`);
+        console.log(`Updated Promotion and PaymentMethod schema`);
 
         // Transfer the Channel.currencyCode to the new Channel.defaultCurrencyCode
         await q(`UPDATE "channel" SET "defaultCurrencyCode" = "currencyCode"`);
@@ -176,15 +179,18 @@ export class v231679907976277 implements MigrationInterface {
              VALUES (DEFAULT, DEFAULT, :defaultStockLocationName, '') RETURNING id`,
             {defaultStockLocationName}
         );
+        console.log(`Created default StockLocation with id ${defaultStockLocationId}`);
 
         // Assign the default StockLocation to all Channels
         await q(
             `INSERT INTO "stock_location_channels_channel" ("stockLocationId", "channelId") SELECT :defaultStockLocationId, "id" FROM "channel"`,
             {defaultStockLocationId}
         );
+        console.log(`Assigned default StockLocation to all Channels`);
 
         // Set the default StockLocation to all StockMovements
         await q(`UPDATE "stock_movement" SET "stockLocationId" = :defaultStockLocationId`, {defaultStockLocationId});
+        console.log(`Set default StockLocation on all StockMovements`);
 
         // Create a StockLevel for every ProductVariant
         await q(
@@ -192,47 +198,78 @@ export class v231679907976277 implements MigrationInterface {
              SELECT "createdAt", "updatedAt", "id", :defaultStockLocationId, "stockOnHand", "stockAllocated" FROM "product_variant"`,
             {defaultStockLocationId},
         );
+        console.log(`Created StockLevels for all ProductVariants`);
 
-        // For each OrderLine, we need to count the number of OrderItems, and set that number as the `quantity` and `orderPlacedQuantity` on the OrderLine
-        const orderLines = await q(`SELECT "id", "orderId" FROM "order_line"`);
-        for (const orderLine of orderLines) {
-            const orderItems = await q(`SELECT * FROM "order_item" WHERE "lineId" = :lineId`, {lineId: orderLine.id});
-            // get first OrderItem for this OrderLine
-            const [orderItem] = await q(`SELECT * FROM "order_item" WHERE "lineId" = :lineId AND "cancelled" = false LIMIT 1`, {lineId: orderLine.id});
-            const adjustments = JSON.parse(orderItem?.adjustments ?? "[]");
-            const priceAdjustedAdjustments = adjustments.map((a: any) => {
-                a.amount = a.amount * orderItems.length;
-                return a;
-            });
-            await q(
-                `UPDATE 
-                 "order_line" SET 
-                 "quantity" = :quantity, 
-                 "orderPlacedQuantity" = :orderPlacedQuantity,
-                 "listPriceIncludesTax" = :listPriceIncludesTax,
-                 "adjustments" = :adjustments,
-                 "taxLines" = :taxLines,
-                 "initialListPrice" = :initialListPrice,
-                 "listPrice" = :listPrice
-                 WHERE "id" = :orderLineId`,
-                {
-                    quantity: orderItems.filter((i: any) => !i.cancelled).length,
-                    orderPlacedQuantity: orderItems.length,
-                    listPriceIncludesTax: orderItems[0].listPriceIncludesTax,
-                    adjustments: JSON.stringify(priceAdjustedAdjustments),
-                    taxLines: orderItems[0].taxLines ?? "[]",
-                    initialListPrice: orderItems[0].initialListPrice ?? 0,
-                    listPrice: orderItems[0].listPrice ?? 0,
-                    orderLineId: orderLine.id,
-                }
-            );
-        }
+        // For each OrderLine, we need to count the number of OrderItems, and set that number as the `quantity` and `orderPlacedQuantity` on the OrderLine,
+        // and transfer other data from the first OrderItem to the OrderLine.
+        const orderLineCount = await q(`SELECT COUNT(*) as count FROM "order_line"`);
+        console.log(`Transferring OrderItem data for ${orderLineCount.count} OrderLines (this may take a while)...`);
+        await q(`UPDATE "order_line"
+        SET
+            "quantity" = (SELECT COUNT(*) FROM "order_item" WHERE "order_line"."id" = "order_item"."lineId" AND NOT "cancelled"),
+            "orderPlacedQuantity" = (SELECT COUNT(*) FROM "order_item" WHERE "order_line"."id" = "order_item"."lineId"),
+            "listPriceIncludesTax" = (
+                SELECT "listPriceIncludesTax"
+                FROM "order_item"
+                WHERE "lineId" = "order_line"."id"
+                LIMIT 1
+            ),
+            "adjustments" = COALESCE((
+                SELECT json_build_array(
+                    json_build_object(
+                        'type', adj->>'type',
+                        'adjustmentSource', adj->>'adjustmentSource',
+                        'description', adj->>'description',
+                        'amount', (adj->>'amount')::numeric * (
+                            SELECT COUNT(*)
+                            FROM "order_item"
+                            WHERE "lineId" = "order_line"."id"
+                        )
+                    )
+                )::TEXT
+                FROM "order_item"
+                CROSS JOIN jsonb_array_elements("adjustments"::jsonb) AS adj
+                WHERE "order_item"."id" = (
+                    SELECT "id"
+                    FROM "order_item"
+                    WHERE "lineId" = "order_line"."id"
+                    AND NOT "cancelled"
+                    ORDER BY "createdAt"
+                    LIMIT 1
+                )
+            ), '[]'),
+            "taxLines" = COALESCE(
+                (
+                    SELECT "taxLines"
+                    FROM "order_item"
+                    WHERE "lineId" = "order_line"."id"
+                    LIMIT 1
+                ), '[]'
+            ),
+            "initialListPrice" = COALESCE(
+                (
+                    SELECT "initialListPrice"
+                    FROM "order_item"
+                    WHERE "lineId" = "order_line"."id"
+                    LIMIT 1
+                ), 0
+            ),
+            "listPrice" = COALESCE(
+                (
+                    SELECT "listPrice"
+                    FROM "order_item"
+                    WHERE "lineId" = "order_line"."id"
+                    LIMIT 1
+                ), 0
+            )`);
+        console.log(`Completed transferring OrderItem data`);
 
         // For each Cancellation, we need to associate it with the OrderItem that it is cancelling
         const cancellations = await q(`SELECT "sm"."id", "sm"."quantity", "sm"."orderItemId", "oi"."lineId" AS "orderLineId" FROM "stock_movement" AS "sm"
                                         INNER JOIN "order_item" AS "oi" ON "sm"."orderItemId" = "oi"."id" 
                                         WHERE "type" = 'CANCELLATION' GROUP BY "sm"."orderItemId", "sm"."id", "oi"."lineId"`);
         const seenCancellationLineIds = new Set<number | string>();
+        console.log(`Transferring Cancellation data for ${cancellations.length} Cancellations`);
         for (const cancellation of cancellations) {
             if (seenCancellationLineIds.has(cancellation.orderLineId)) {
                 // We have already created a Cancellation for this OrderLine, so we can delete this row
@@ -255,6 +292,7 @@ export class v231679907976277 implements MigrationInterface {
                                   INNER JOIN "order_item" AS "oi" ON "sm"."orderItemId" = "oi"."id" 
                                   WHERE "type" = 'RELEASE' GROUP BY "sm"."orderItemId", "sm"."id", "oi"."lineId"`);
         const seenReleaseLineIds = new Set<number | string>();
+        console.log(`Transferring Release data for ${releases.length} Releases`);
         for (const release of releases) {
             if (seenReleaseLineIds.has(release.orderLineId)) {
                 // We have already created a Release for this OrderLine, so we can delete this row
@@ -285,6 +323,7 @@ export class v231679907976277 implements MigrationInterface {
                  JOIN "order_item" oi ON oi."lineId" = ol."id"
                  WHERE oi."refundId" IS NOT NULL
                  GROUP BY oi."refundId", ol."id", oi."lineId", oi."createdAt", oi."updatedAt";`);
+        console.log(`Transferred data for Refunds`);
 
         // Fulfillment associated with new FulfillmentLine, add reference to Fulfillment on Order entity
         await q(`INSERT INTO order_line_reference ("createdAt", "updatedAt", "orderLineId", "discriminator", "quantity", "fulfillmentId")
@@ -299,6 +338,7 @@ export class v231679907976277 implements MigrationInterface {
                  JOIN "order_item_fulfillments_fulfillment" oif_fulfillment ON oif_fulfillment."orderItemId" = oi."id"
                  JOIN "fulfillment" fulfillment ON oif_fulfillment."fulfillmentId" = fulfillment."id"
                  GROUP BY ol."id", oif_fulfillment."fulfillmentId", fulfillment.id;`);
+        console.log(`Transferred data for Fulfillments`);
 
         // Also add a corresponding row to the order_fulfillments_fulfillment table
         await q(`INSERT INTO order_fulfillments_fulfillment ("orderId", "fulfillmentId")
@@ -307,6 +347,7 @@ export class v231679907976277 implements MigrationInterface {
                     FROM "order_line" ol
                     JOIN "order_line_reference" olr ON olr."orderLineId" = ol."id"
                     WHERE olr."discriminator" = 'FulfillmentLine'`);
+        console.log(`Linked fulfillments to Orders`);
 
 
         // OrderModification associated with new OrderModificationLine
@@ -322,6 +363,7 @@ export class v231679907976277 implements MigrationInterface {
                  JOIN "order_modification_order_items_order_item" omoi_order_item ON omoi_order_item."orderItemId" = oi."id"
                  JOIN "order_modification" order_modification ON omoi_order_item."orderModificationId" = order_modification."id"
                  GROUP BY ol."id", omoi_order_item."orderModificationId", order_modification.id;`);
+        console.log(`Transferred data for OrderModifications`);
 
         // Moved from earlier in the sequence. Now we have migrated all the data, we can drop the old columns
         await q(`ALTER TABLE "channel" DROP COLUMN "currencyCode"`);
