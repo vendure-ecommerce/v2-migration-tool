@@ -20,6 +20,9 @@ import {
 import { createConnection } from "typeorm";
 import path from "path";
 import { config } from "./vendure-config";
+import {
+    discountOnItemWithFacets
+} from "@vendure/core/dist/config/promotion/actions/facet-values-percentage-discount-action";
 
 if (require.main === module) {
     populateTestData(config)
@@ -62,14 +65,14 @@ export async function populateTestData(config: VendureConfig) {
         require.resolve("@vendure/create/assets/products.csv")
     );
     console.log(`Creating a Promotion...`);
-    await createPromotion(app);
+    await createPromotions(app);
     console.log(`Creating a Customer...`);
     await createCustomer(app);
     console.log(`Creating an Order...`);
     await createOrder(app);
 }
 
-async function createPromotion(app: INestApplication) {
+async function createPromotions(app: INestApplication) {
     const ctx = await getAdminRequestContext(app);
     const promotionService = app.get(PromotionService);
     await promotionService.createPromotion(ctx, {
@@ -83,6 +86,20 @@ async function createPromotion(app: INestApplication) {
             },
         ],
         couponCode: "TEST",
+    });
+    await promotionService.createPromotion(ctx, {
+        name: "Test Promotion 2",
+        enabled: true,
+        conditions: [],
+        actions: [
+            {
+                code: discountOnItemWithFacets.code,
+                arguments: [
+                    { name: "discount", value: "5" },
+                    { name: "facets", value: "[5]" }],
+            },
+        ],
+        couponCode: "TEST2",
     });
 }
 
@@ -108,6 +125,7 @@ async function createOrder(app: INestApplication) {
     await orderService.addItemToOrder(ctx, order.id, 6, 2);
     await orderService.addItemToOrder(ctx, order.id, 8, 2);
     await orderService.applyCouponCode(ctx, order.id, "TEST");
+    await orderService.applyCouponCode(ctx, order.id, "TEST2");
     await orderService.setShippingAddress(ctx, order.id, {
         fullName: "Test User",
         company: "Test Company",

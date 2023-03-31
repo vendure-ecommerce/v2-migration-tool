@@ -48,6 +48,10 @@ describe("migration tests", () => {
                 id: "1",
                 name: "Test Promotion",
             },
+            {
+                id: "2",
+                name: "Test Promotion 2",
+            },
         ]);
     });
 
@@ -220,12 +224,12 @@ describe("migration tests", () => {
         `);
         expect(order).toEqual({
             id: "1",
-            subTotal: 98075,
-            subTotalWithTax: 117690,
+            subTotal: 95285,
+            subTotalWithTax: 114342,
             shipping: 500,
             shippingWithTax: 500,
-            total: 98575,
-            totalWithTax: 118190,
+            total: 95785,
+            totalWithTax: 114842,
             lines: [
                 {
                     id: "1",
@@ -279,8 +283,14 @@ describe("migration tests", () => {
                     ],
                     discounts: [
                         {
+                            adjustmentSource: "PROMOTION:2",
+                            amount: -3100,
+                            description: "Test Promotion 2",
+                            type: "PROMOTION",
+                        },
+                        {
                             adjustmentSource: "PROMOTION:1",
-                            amount: -6200,
+                            amount: -5890,
                             description: "Test Promotion",
                             type: "DISTRIBUTED_ORDER_PROMOTION",
                         },
