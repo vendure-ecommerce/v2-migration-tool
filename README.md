@@ -46,9 +46,17 @@ backup that you can easily restore prior to attempting this migration.
 6. Run the migration with `npm run migration:run`.
 7. Upon successful migration, remove the `MigrationV2Plugin` from your plugins array, and generate _another_ migration. This one will add back the missing "NOT NULL" constraints now that all your data has been successfully migrated.
 
+### Reporting issues
+
+If you run into issues when attempting to migrate per the instructions above, please [create an issue](https://github.com/vendure-ecommerce/v2-migration-tool/issues/new) describing what you ran into. 
+
+The same goes for if you discover that some data has not migrated correctly, of if you have any suggestions on how to improve the migration experience.
+
+---
+
 ## Development
 
-This repo is used to develop and test migration of a Vendure v1 project to v2.
+The following instructions relate to building and running this repo for development purposes.
 
 ### Setup
 
