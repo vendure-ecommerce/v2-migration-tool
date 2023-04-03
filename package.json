@@ -1,41 +1,39 @@
 {
-  "name": "v2-migration-testbed",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev:server": "ts-node ./src/index.ts",
-    "dev:worker": "ts-node ./src/index-worker.ts",
-    "dev": "concurrently yarn:dev:*",
-    "build": "tsc",
-    "start:server": "node ./dist/index.js",
-    "start:worker": "node ./dist/index-worker.js",
-    "start": "concurrently yarn:start:*",
-    "migration:generate": "ts-node migration generate",
-    "migration:run": "ts-node migration run",
-    "migration:revert": "ts-node migration revert",
-    "populate": "ts-node ./src/populate.ts",
-    "test": "vitest",
-    "migrate": "ts-node migration run"
-  },
-  "dependencies": {
-    "@vendure/admin-ui-plugin": "2.0.0-next.29",
-    "@vendure/asset-server-plugin": "2.0.0-next.29",
-    "@vendure/core": "2.0.0-next.29",
-    "@vendure/email-plugin": "2.0.0-next.29",
-    "dotenv": "16.0.3",
-    "pg": "8.10.0",
-    "typescript": "4.3.5"
-  },
-  "devDependencies": {
-    "@vendure/create": "^2.0.0-next.29",
-    "@vendure/testing": "^2.0.0-next.29",
-    "concurrently": "7.6.0",
-    "graphql-tag": "^2.12.6",
-    "prettier": "^2.8.6",
-    "ts-node": "10.9.1",
-    "vitest": "^0.29.7"
-  },
-  "resolutions": {
-    "typeorm": "0.3.11"
-  }
+    "name": "v2-migration-testbed",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev:server": "ts-node ./src/index.ts",
+        "dev:worker": "ts-node ./src/index-worker.ts",
+        "dev": "concurrently yarn:dev:*",
+        "build": "tsc",
+        "start:server": "node ./dist/index.js",
+        "start:worker": "node ./dist/index-worker.js",
+        "start": "concurrently yarn:start:*",
+        "migration:generate": "ts-node migration generate",
+        "migration:run": "ts-node migration run",
+        "migration:revert": "ts-node migration revert",
+        "populate": "ts-node ./src/populate.ts",
+        "test": "vitest",
+        "migrate": "ts-node migration run"
+    },
+    "dependencies": {
+        "@vendure/admin-ui-plugin": "2.0.0-beta.1",
+        "@vendure/asset-server-plugin": "2.0.0-beta.1",
+        "@vendure/core": "2.0.0-beta.1",
+        "@vendure/email-plugin": "2.0.0-beta.1",
+        "dotenv": "16.0.3",
+        "pg": "8.10.0",
+        "typescript": "4.3.5"
+    },
+    "devDependencies": {
+        "@vendure/create": "^2.0.0-beta.1",
+        "@vendure/testing": "^2.0.0-beta.1",
+        "concurrently": "7.6.0",
+        "graphql-tag": "^2.12.6",
+        "mysql2": "^3.2.0",
+        "prettier": "^2.8.6",
+        "ts-node": "10.9.1",
+        "vitest": "^0.29.7"
+    },"resolutions": { "typeorm": "0.3.11"  }
 }

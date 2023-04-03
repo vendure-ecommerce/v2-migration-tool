@@ -3,7 +3,8 @@ import {
     EntityMetadataModifier,
     OrderLine,
     PluginCommonModule,
-    ProductVariantPrice, StockMovement,
+    ProductVariantPrice,
+    StockMovement,
     Type,
     VendureEntity,
     VendurePlugin,
@@ -50,8 +51,10 @@ const removeNotNullConstraints: EntityMetadataModifier = (metadata) => {
                 (col) => col.propertyName === column && col.target === entity
             );
             if (-1 < descriptionColumnIndex) {
-                metadata.columns[descriptionColumnIndex].options.nullable = true;
+                metadata.columns[descriptionColumnIndex].options.nullable =
+                    true;
             }
         }
     }
 };
+

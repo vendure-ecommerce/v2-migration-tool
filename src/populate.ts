@@ -6,13 +6,11 @@ import {
     Customer,
     CustomerService,
     EntityHydrator,
-    FulfillmentService,
     isGraphQlErrorResult,
     orderPercentageDiscount,
     OrderService,
     PromotionService,
     RequestContextService,
-    ShippingMethod,
     ShippingMethodService,
     TransactionalConnection,
     VendureConfig,
@@ -20,9 +18,7 @@ import {
 import { createConnection } from "typeorm";
 import path from "path";
 import { config } from "./vendure-config";
-import {
-    discountOnItemWithFacets
-} from "@vendure/core/dist/config/promotion/actions/facet-values-percentage-discount-action";
+import { discountOnItemWithFacets } from "@vendure/core/dist/config/promotion/actions/facet-values-percentage-discount-action";
 
 if (require.main === module) {
     populateTestData(config)
@@ -96,7 +92,8 @@ async function createPromotions(app: INestApplication) {
                 code: discountOnItemWithFacets.code,
                 arguments: [
                     { name: "discount", value: "5" },
-                    { name: "facets", value: "[5]" }],
+                    { name: "facets", value: "[5]" },
+                ],
             },
         ],
         couponCode: "TEST2",
@@ -301,12 +298,20 @@ async function getShopRequestContext(app: INestApplication) {
 
 // https://stackoverflow.com/a/21247009/772859
 async function dropAllTables(config: VendureConfig) {
+    const { type } = config.dbConnectionOptions;
+
     const connection = await createConnection(config.dbConnectionOptions);
-    const schema = process.env.DB_SCHEMA || "public";
-    await connection.query(`
+    if (type === "postgres") {
+        const schema = process.env.POSTGRES_DB_SCHEMA || "public";
+        await connection.query(`
         DROP SCHEMA ${schema} CASCADE;
         CREATE SCHEMA ${schema};
-        GRANT ALL ON SCHEMA ${schema} TO ${process.env.DB_USERNAME};
+        GRANT ALL ON SCHEMA ${schema} TO ${process.env.POSTGRES_DB_USERNAME};
         COMMENT ON SCHEMA ${schema} IS 'standard public schema';`);
+    } else if (type === "mysql" || type === "mariadb") {
+        await connection.dropDatabase();
+    } else {
+        throw new Error(`Unsupported database type: ${type}`);
+    }
     await connection.close();
 }
