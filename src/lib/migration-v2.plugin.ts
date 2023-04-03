@@ -10,6 +10,12 @@ import {
     VendurePlugin,
 } from "@vendure/core";
 
+/**
+ * @description
+ * This plugin is used in the migration of a Vendure 1.x database to Vendure 2.x.
+ * Add it to your plugins array prior to generating a migration, then remove it
+ * after the migration has completed successfully.
+ */
 @VendurePlugin({
     imports: [PluginCommonModule],
     configuration: (config) => {

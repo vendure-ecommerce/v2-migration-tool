@@ -2,7 +2,17 @@
 
 This is a tool used to migrate your data from the Vendure v1.x DB schema to v2.0.0. 
 
-## Migrating from Vendure v1 to v2
+## Migrating your DB from Vendure v1 to v2
+
+**Important** It is _critical_ that you back up your data prior to attempting this migration.
+
+Note for **MySQL/MariaDB users**: transactions for migrations are [not supported by these databases](https://dev.mysql.com/doc/refman/5.7/en/cannot-roll-back.html).
+This means that if the
+migration fails for some reason, the statements that have executed will not get rolled back, and your DB schema can be left
+in an inconsistent state from which is it can be hard to recover. Therefore, it is doubly critical that you have a good
+backup that you can easily restore prior to attempting this migration.
+
+---
 
 1. Install this package: `npm install @vendure/migrate-v2`
 2. Update all your Vendure packages to the latest v2 versions. 
