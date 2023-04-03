@@ -48,6 +48,12 @@ export async function vendureV2Migrations(queryRunner: QueryRunner) {
     );
     console.log(`Set default StockLocation on all StockMovements`);
 
+    // Set the currencyCode on all ProductVariantPrice entities based on the associated Channel
+    await q(
+        `UPDATE "product_variant_price" SET "currencyCode" = (SELECT "defaultCurrencyCode" FROM "channel" WHERE "id" = "channelId")`
+    );
+    console.log(`Set currencyCode on all ProductVariantPrice entities`);
+
     // Create a StockLevel for every ProductVariant
     await q(
         `INSERT INTO "stock_level" ("createdAt", "updatedAt", "productVariantId", "stockLocationId", "stockOnHand", "stockAllocated")
