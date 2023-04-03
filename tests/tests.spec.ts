@@ -1,13 +1,13 @@
-import {afterAll, beforeAll, describe, expect, it} from "vitest";
-import {SimpleGraphQLClient, testConfig} from "@vendure/testing";
-import {INestApplication} from "@nestjs/common";
-import {bootstrap, mergeConfig} from "@vendure/core";
-import {config} from "../src/vendure-config";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { SimpleGraphQLClient, testConfig } from "@vendure/testing";
+import { INestApplication } from "@nestjs/common";
+import { bootstrap, mergeConfig } from "@vendure/core";
+import { config } from "../src/vendure-config";
 import gql from "graphql-tag";
 
 describe("migration tests", () => {
     const isVendureV2 =
-        require("../package.json").dependencies["@vendure/core"].startsWith(
+        require("../package.json").devDependencies["@vendure/core"].startsWith(
             "2"
         );
     const adminApiUrl = `http://localhost:${config.apiOptions.port}/${config.apiOptions.adminApiPath}`;
@@ -22,7 +22,7 @@ describe("migration tests", () => {
             dbConnectionOptions: {
                 ...config.dbConnectionOptions,
                 migrations: [],
-            }
+            },
         });
         await adminClient.asSuperAdmin();
     }, 60000);
@@ -33,7 +33,7 @@ describe("migration tests", () => {
 
     // https://github.com/vendure-ecommerce/vendure/commit/dada24398dad8e739de590afaea7a4eb49ed3de4
     it("Promotion name", async () => {
-        const {promotions} = await adminClient.query(gql`
+        const { promotions } = await adminClient.query(gql`
             query {
                 promotions {
                     items {
@@ -57,7 +57,7 @@ describe("migration tests", () => {
 
     // https://github.com/vendure-ecommerce/vendure/commit/2a4b3bc478f364bf055a0db75955efbe9720109f
     it("PaymentMethod name & description", async () => {
-        const {paymentMethods} = await adminClient.query(gql`
+        const { paymentMethods } = await adminClient.query(gql`
             query {
                 paymentMethods {
                     items {
@@ -80,7 +80,7 @@ describe("migration tests", () => {
     // https://github.com/vendure-ecommerce/vendure/commit/24e558b04ec6c54b7a8ff0d2b384806aeb6b4fb6
     it("Channel currencyCode", async () => {
         if (isVendureV2) {
-            const {channels} = await adminClient.query(gql`
+            const { channels } = await adminClient.query(gql`
                 query {
                     channels {
                         id
@@ -95,7 +95,7 @@ describe("migration tests", () => {
                 },
             ]);
         } else {
-            const {channels} = await adminClient.query(gql`
+            const { channels } = await adminClient.query(gql`
                 query {
                     channels {
                         id
@@ -114,7 +114,7 @@ describe("migration tests", () => {
 
     // https://github.com/vendure-ecommerce/vendure/commit/905c1dfb4fbe16086e6d69c08ed145ead3a53f8c
     it("ProductVariant stock levels", async () => {
-        const {productVariants} = await adminClient.query(gql`
+        const { productVariants } = await adminClient.query(gql`
             query {
                 productVariants(options: { take: 10, sort: { id: ASC } }) {
                     items {
@@ -126,20 +126,20 @@ describe("migration tests", () => {
             }
         `);
         expect(productVariants.items).toEqual([
-            {id: "1", stockOnHand: 100, stockAllocated: 0},
-            {id: "2", stockOnHand: 100, stockAllocated: 0},
-            {id: "3", stockOnHand: 100, stockAllocated: 0},
-            {id: "4", stockOnHand: 100, stockAllocated: 0},
-            {id: "5", stockOnHand: 100, stockAllocated: 0},
-            {id: "6", stockOnHand: 100, stockAllocated: 1},
-            {id: "7", stockOnHand: 100, stockAllocated: 0},
-            {id: "8", stockOnHand: 98, stockAllocated: 0},
-            {id: "9", stockOnHand: 100, stockAllocated: 0},
-            {id: "10", stockOnHand: 100, stockAllocated: 0},
+            { id: "1", stockOnHand: 100, stockAllocated: 0 },
+            { id: "2", stockOnHand: 100, stockAllocated: 0 },
+            { id: "3", stockOnHand: 100, stockAllocated: 0 },
+            { id: "4", stockOnHand: 100, stockAllocated: 0 },
+            { id: "5", stockOnHand: 100, stockAllocated: 0 },
+            { id: "6", stockOnHand: 100, stockAllocated: 1 },
+            { id: "7", stockOnHand: 100, stockAllocated: 0 },
+            { id: "8", stockOnHand: 98, stockAllocated: 0 },
+            { id: "9", stockOnHand: 100, stockAllocated: 0 },
+            { id: "10", stockOnHand: 100, stockAllocated: 0 },
         ]);
 
         if (isVendureV2) {
-            const {productVariants} = await adminClient.query(gql`
+            const { productVariants } = await adminClient.query(gql`
                 query {
                     productVariants(
                         options: {
@@ -189,9 +189,62 @@ describe("migration tests", () => {
         }
     });
 
+    it("ProductVariant prices & currencyCode", async () => {
+        const { productVariants } = await adminClient.query(gql`
+            query {
+                productVariants(options: { take: 10, sort: { id: ASC } }) {
+                    items {
+                        id
+                        price
+                        priceWithTax
+                        currencyCode
+                    }
+                }
+            }
+        `);
+
+        expect(productVariants.items).toEqual([
+            {
+                id: "1",
+                price: 129900,
+                priceWithTax: 155880,
+                currencyCode: "USD",
+            },
+            {
+                id: "2",
+                price: 139900,
+                priceWithTax: 167880,
+                currencyCode: "USD",
+            },
+            {
+                id: "3",
+                price: 219900,
+                priceWithTax: 263880,
+                currencyCode: "USD",
+            },
+            {
+                id: "4",
+                price: 229900,
+                priceWithTax: 275880,
+                currencyCode: "USD",
+            },
+            { id: "5", price: 32900, priceWithTax: 39480, currencyCode: "USD" },
+            { id: "6", price: 44500, priceWithTax: 53400, currencyCode: "USD" },
+            { id: "7", price: 1899, priceWithTax: 2279, currencyCode: "USD" },
+            { id: "8", price: 31000, priceWithTax: 37200, currencyCode: "USD" },
+            { id: "9", price: 14374, priceWithTax: 17249, currencyCode: "USD" },
+            {
+                id: "10",
+                price: 16994,
+                priceWithTax: 20393,
+                currencyCode: "USD",
+            },
+        ]);
+    });
+
     // https://github.com/vendure-ecommerce/vendure/commit/8e5fb2aad43d79712ee8c57c51581cc0f49c7843
     it("order totals", async () => {
-        const {order} = await adminClient.query(gql`
+        const { order } = await adminClient.query(gql`
             query {
                 order(id: "1") {
                     id
@@ -303,7 +356,7 @@ describe("migration tests", () => {
     // https://github.com/vendure-ecommerce/vendure/commit/8e5fb2aad43d79712ee8c57c51581cc0f49c7843
     it("order fulfillments", async () => {
         if (isVendureV2) {
-            const {order} = await adminClient.query(gql`
+            const { order } = await adminClient.query(gql`
                 query {
                     order(id: "1") {
                         fulfillments {
@@ -325,14 +378,16 @@ describe("migration tests", () => {
                     method: "UPS",
                     state: "Pending",
                     trackingCode: "123456789",
-                    lines: [{
-                        orderLineId: "3",
-                        quantity: 2,
-                    }]
+                    lines: [
+                        {
+                            orderLineId: "3",
+                            quantity: 2,
+                        },
+                    ],
                 },
             ]);
         } else {
-            const {order} = await adminClient.query(gql`
+            const { order } = await adminClient.query(gql`
                 query {
                     order(id: "1") {
                         fulfillments {
@@ -369,7 +424,7 @@ describe("migration tests", () => {
     // https://github.com/vendure-ecommerce/vendure/commit/8e5fb2aad43d79712ee8c57c51581cc0f49c7843
     it("order refunds", async () => {
         if (isVendureV2) {
-            const {order} = await adminClient.query(gql`
+            const { order } = await adminClient.query(gql`
                 query {
                     order(id: "1") {
                         payments {
@@ -405,7 +460,7 @@ describe("migration tests", () => {
                 },
             ]);
         } else {
-            const {order} = await adminClient.query(gql`
+            const { order } = await adminClient.query(gql`
                 query {
                     order(id: "1") {
                         payments {
@@ -444,7 +499,7 @@ describe("migration tests", () => {
     // https://github.com/vendure-ecommerce/vendure/commit/8e5fb2aad43d79712ee8c57c51581cc0f49c7843
     it("order modifications", async () => {
         if (isVendureV2) {
-            const {order} = await adminClient.query(gql`
+            const { order } = await adminClient.query(gql`
                 query {
                     order(id: "1") {
                         modifications {
@@ -501,7 +556,7 @@ describe("migration tests", () => {
                 },
             ]);
         } else {
-            const {order} = await adminClient.query(gql`
+            const { order } = await adminClient.query(gql`
                 query {
                     order(id: "1") {
                         modifications {
@@ -539,7 +594,7 @@ describe("migration tests", () => {
     // https://github.com/vendure-ecommerce/vendure/commit/3d9f7e8934e55f65cfa97f6b5eb378c32df84655
     if (isVendureV2) {
         it("order type", async () => {
-            const {order} = await adminClient.query(gql`
+            const { order } = await adminClient.query(gql`
                 query {
                     order(id: "1") {
                         type
