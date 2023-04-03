@@ -12,7 +12,7 @@ import path from "path";
 
 const IS_DEV = process.env.APP_ENV === "dev";
 const isVendureV2 =
-    require("../package.json").dependencies["@vendure/core"].startsWith("2");
+    require("../package.json").devDependencies["@vendure/core"].startsWith("2");
 const DB = process.env.DB === "mysql" ? "mysql" : "postgres";
 
 export const config: VendureConfig = {

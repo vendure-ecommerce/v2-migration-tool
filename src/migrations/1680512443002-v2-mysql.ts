@@ -5,6 +5,8 @@ export class mysqlV21680512443002 implements MigrationInterface {
 
     // prettier-ignore
     public async up(queryRunner: QueryRunner): Promise<any> {
+        // This part does not need to be copied to your own migration - it is just used when developing the migration
+        // scripts themselves.
         if (queryRunner.connection.options.type === "postgres") {
             // This is just for mysql/mariadb - don't attempt to run on postgres
             return;

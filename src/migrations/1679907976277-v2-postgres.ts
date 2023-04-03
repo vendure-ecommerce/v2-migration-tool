@@ -4,6 +4,9 @@ import {vendureV2Migrations} from "../lib/run-migrations";
 export class postgresV231679907976277 implements MigrationInterface {
     // prettier-ignore
     public async up(queryRunner: QueryRunner): Promise<any> {
+
+        // This part does not need to be copied to your own migration - it is just used when developing the migration
+        // scripts themselves.
         if (queryRunner.connection.options.type === "mysql" || queryRunner.connection.options.type === "mariadb") {
             // This is just for postgres - don't attempt to run on mysql
             return;
