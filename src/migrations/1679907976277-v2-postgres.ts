@@ -22,7 +22,7 @@ export class postgresV231679907976277 implements MigrationInterface {
         // await queryRunner.query("ALTER TABLE `stock_movement` RENAME COLUMN `orderItemId` TO `stockLocationId`", undefined);
         //
         // Replace it with:
-        await queryRunner.query(`ALTER TABLE "stock_movement" ADD "stockLocationId" integer`);
+        await queryRunner.query(`ALTER TABLE "stock_movement" ADD "stockLocationId" uuid NOT NULL`);
 
         await queryRunner.query(`CREATE TABLE "seller" ("createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "name" character varying NOT NULL, "id" SERIAL NOT NULL, CONSTRAINT "PK_36445a9c6e794945a4a4a8d3c9d" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "stock_location" ("createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "name" character varying NOT NULL, "description" character varying NOT NULL, "id" SERIAL NOT NULL, CONSTRAINT "PK_adf770067d0df1421f525fa25cc" PRIMARY KEY ("id"))`);
