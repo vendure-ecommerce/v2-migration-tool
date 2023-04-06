@@ -1,4 +1,6 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
+
+// In your migration, you would import this from '@vendure/migration-v2'
 import {vendureV2Migrations} from "../lib/run-migrations";
 
 export class mysqlV21680512443002 implements MigrationInterface {
@@ -21,8 +23,10 @@ export class mysqlV21680512443002 implements MigrationInterface {
         //
         // await queryRunner.query("ALTER TABLE `stock_movement` RENAME COLUMN `orderItemId` TO `stockLocationId`", undefined);
         //
-        // Replace it with:
+        // Replace it with the line below if you are using the default value (AutoIncrementIdStrategy) for the entityIdStrategy:
         await queryRunner.query("ALTER TABLE `stock_movement` ADD `stockLocationId` int");
+        // Or if you are using UuidIdStrategy as entityIdStrategy, replace it with:
+        // await queryRunner.query("ALTER TABLE `stock_movement` ADD `stockLocationId` UUID NOT NULL");
 
         await queryRunner.query("CREATE TABLE `seller` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `deletedAt` datetime NULL, `name` varchar(255) NOT NULL, `id` int NOT NULL AUTO_INCREMENT, PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);
         await queryRunner.query("CREATE TABLE `stock_location` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `name` varchar(255) NOT NULL, `description` varchar(255) NOT NULL, `id` int NOT NULL AUTO_INCREMENT, PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);

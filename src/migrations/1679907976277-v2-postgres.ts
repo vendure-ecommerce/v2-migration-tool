@@ -1,4 +1,6 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
+
+// In your migration, you would import this from '@vendure/migration-v2'
 import {vendureV2Migrations} from "../lib/run-migrations";
 
 export class postgresV231679907976277 implements MigrationInterface {
