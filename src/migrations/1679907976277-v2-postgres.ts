@@ -21,7 +21,7 @@ export class postgresV231679907976277 implements MigrationInterface {
         //
         // await queryRunner.query("ALTER TABLE `stock_movement` RENAME COLUMN `orderItemId` TO `stockLocationId`", undefined);
         //
-        // Replace it with the line below if you are using the default value (AutoIncrementIdStrategy) for the entityIdStrategy
+        // Replace it with the line below if you are using the default value (AutoIncrementIdStrategy) for the entityIdStrategy:
         await queryRunner.query(`ALTER TABLE "stock_movement" ADD "stockLocationId" integer`);
         // Or if you are using UuidIdStrategy as entityIdStrategy, replace it with:
         // await queryRunner.query(`ALTER TABLE "stock_movement" ADD "stockLocationId" uuid NOT NULL`);
