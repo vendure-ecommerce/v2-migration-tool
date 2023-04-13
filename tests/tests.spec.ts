@@ -605,4 +605,62 @@ describe("migration tests", () => {
             expect(order.type).toEqual("Regular");
         });
     }
+
+    it("countries", async () => {
+        const { countries } = await adminClient.query(gql`
+            query {
+                countries(options: { take: 10, sort: { name: ASC } }) {
+                    items {
+                        id
+                        code
+                        name
+                    }
+                    totalItems
+                }
+            }
+        `);
+
+        expect(countries.items).toEqual([
+            { id: "1", code: "AF", name: "Afghanistan" },
+            { id: "2", code: "AX", name: "Åland Islands" },
+            { id: "3", code: "AL", name: "Albania" },
+            { id: "4", code: "DZ", name: "Algeria" },
+            { id: "5", code: "AS", name: "American Samoa" },
+            { id: "6", code: "AD", name: "Andorra" },
+            { id: "7", code: "AO", name: "Angola" },
+            { id: "8", code: "AI", name: "Anguilla" },
+            { id: "9", code: "AG", name: "Antigua and Barbuda" },
+            { id: "10", code: "AR", name: "Argentina" },
+        ]);
+        expect(countries.totalItems).toBe(248);
+    });
+
+    it("zone", async () => {
+        const { zone } = await adminClient.query(gql`
+            query {
+                zone(id: "1") {
+                    id
+                    name
+                    members {
+                        id
+                        code
+                        name
+                    }
+                }
+            }
+        `);
+
+        expect(zone.members.length).toBe(51);
+        // prettier-ignore
+        expect(zone.members.map((m: any) => m.id)).toEqual([
+          '1',   '11',  '15',  '17',  '18',  '25',
+          '33',  '38',  '45',  '58',  '82',  '100',
+          '103', '104', '105', '106', '109', '112',
+          '114', '115', '118', '119', '120', '121',
+          '122', '124', '131', '135', '136', '148',
+          '153', '156', '167', '168', '170', '175',
+          '180', '195', '200', '210', '216', '217',
+          '218', '220', '221', '227', '228', '233',
+          '238', '241', '246']);
+    });
 });
