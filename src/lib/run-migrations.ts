@@ -325,6 +325,14 @@ export async function vendureV2Migrations(queryRunner: QueryRunner) {
                      GROUP BY ol."id", omoi_order_item."orderModificationId", order_modification.id;`);
     console.log(`Transferred data for OrderModifications`);
 
+    // Transfer data from the deprecated `country` tables to the new `region` tables
+    await q(`INSERT INTO "region" ("createdAt", "updatedAt", "code", "type", "enabled", "id", "discriminator") 
+                            SELECT "createdAt", "updatedAt", "code", 'country', "enabled", "id", 'Country' FROM "country"`);
+    await q(`INSERT INTO "region_translation" ("createdAt", "updatedAt", "languageCode", "id", "name", "baseId") 
+                                        SELECT "createdAt", "updatedAt", "languageCode", "id", "name", "baseId" FROM "country_translation"`);
+    await q(`INSERT INTO "zone_members_region" ("zoneId", "regionId") SELECT "zoneId", "countryId" FROM "zone_members_country"`);
+    console.log(`Transferred data for Countries`);
+
     // Moved from earlier in the sequence. Now we have migrated all the data, we can drop the old columns
     await q(`ALTER TABLE "channel" DROP COLUMN "currencyCode"`);
     await q(`ALTER TABLE "product_variant" DROP COLUMN "stockOnHand"`);

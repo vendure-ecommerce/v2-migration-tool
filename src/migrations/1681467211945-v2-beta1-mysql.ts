@@ -3,8 +3,7 @@ import {MigrationInterface, QueryRunner} from "typeorm";
 // In your migration, you would import this from '@vendure/migration-v2'
 import {vendureV2Migrations} from "../lib/run-migrations";
 
-export class mysqlV21680512443002 implements MigrationInterface {
-
+export class v21681467211945 implements MigrationInterface {
     // prettier-ignore
     public async up(queryRunner: QueryRunner): Promise<any> {
         // This part does not need to be copied to your own migration - it is just used when developing the migration
@@ -16,24 +15,29 @@ export class mysqlV21680512443002 implements MigrationInterface {
 
         await queryRunner.query("ALTER TABLE `stock_movement` DROP FOREIGN KEY `FK_cbb0990e398bf7713aebdd38482`", undefined);
         await queryRunner.query("ALTER TABLE `product_variant_price` DROP FOREIGN KEY `FK_e6126cd268aea6e9b31d89af9ab`", undefined);
+        await queryRunner.query("ALTER TABLE `address` DROP FOREIGN KEY `FK_d87215343c3a3a67e6a0b7f3ea9`", undefined);
 
         // =================== Step 1 ===================
         // TypeORM will generate this RENAME COLUMN statement, but we should be creating a new column and dropping the old one.
         // Comment out the following query:
         //
-        // await queryRunner.query("ALTER TABLE `stock_movement` RENAME COLUMN `orderItemId` TO `stockLocationId`", undefined);
+        // await queryRunner.query("ALTER TABLE `stock_movement` CHANGE `orderItemId` `stockLocationId` int NULL", undefined);
         //
         // Replace it with the line below if you are using the default value (AutoIncrementIdStrategy) for the entityIdStrategy:
         await queryRunner.query("ALTER TABLE `stock_movement` ADD `stockLocationId` int");
         // Or if you are using UuidIdStrategy as entityIdStrategy, replace it with:
         // await queryRunner.query("ALTER TABLE `stock_movement` ADD `stockLocationId` UUID NOT NULL");
 
+
         await queryRunner.query("CREATE TABLE `seller` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `deletedAt` datetime NULL, `name` varchar(255) NOT NULL, `id` int NOT NULL AUTO_INCREMENT, PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);
+        await queryRunner.query("CREATE TABLE `region_translation` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `languageCode` varchar(255) NOT NULL, `name` varchar(255) NOT NULL, `id` int NOT NULL AUTO_INCREMENT, `baseId` int NULL, INDEX `IDX_1afd722b943c81310705fc3e61` (`baseId`), PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);
+        await queryRunner.query("CREATE TABLE `region` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `code` varchar(255) NOT NULL, `type` varchar(255) NOT NULL, `enabled` tinyint NOT NULL, `id` int NOT NULL AUTO_INCREMENT, `parentId` int NULL, `discriminator` varchar(255) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);
         await queryRunner.query("CREATE TABLE `stock_location` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `name` varchar(255) NOT NULL, `description` varchar(255) NOT NULL, `id` int NOT NULL AUTO_INCREMENT, PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);
         await queryRunner.query("CREATE TABLE `stock_level` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `stockOnHand` int NOT NULL, `stockAllocated` int NOT NULL, `id` int NOT NULL AUTO_INCREMENT, `productVariantId` int NOT NULL, `stockLocationId` int NOT NULL, UNIQUE INDEX `IDX_7fc20486b8cfd33dc84c96e168` (`productVariantId`, `stockLocationId`), PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);
         await queryRunner.query("CREATE TABLE `order_line_reference` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `quantity` int NOT NULL, `id` int NOT NULL AUTO_INCREMENT, `fulfillmentId` int NULL, `modificationId` int NULL, `orderLineId` int NOT NULL, `refundId` int NULL, `discriminator` varchar(255) NOT NULL, INDEX `IDX_7d57857922dfc7303604697dbe` (`orderLineId`), INDEX `IDX_06b02fb482b188823e419d37bd` (`fulfillmentId`), INDEX `IDX_22b818af8722746fb9f206068c` (`modificationId`), INDEX `IDX_30019aa65b17fe9ee962893199` (`refundId`), INDEX `IDX_49a8632be8cef48b076446b8b9` (`discriminator`), PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);
-        await queryRunner.query("CREATE TABLE `promotion_translation` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `languageCode` varchar(255) NOT NULL, `name` varchar(255) NOT NULL, `description` text NOT NULL DEFAULT '', `id` int NOT NULL AUTO_INCREMENT, `baseId` int NULL, INDEX `IDX_1cc009e9ab2263a35544064561` (`baseId`), PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);
-        await queryRunner.query("CREATE TABLE `payment_method_translation` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `languageCode` varchar(255) NOT NULL, `name` varchar(255) NOT NULL, `description` text NOT NULL DEFAULT '', `id` int NOT NULL AUTO_INCREMENT, `baseId` int NULL, INDEX `IDX_66187f782a3e71b9e0f5b50b68` (`baseId`), PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);
+        await queryRunner.query("CREATE TABLE `promotion_translation` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `languageCode` varchar(255) NOT NULL, `name` varchar(255) NOT NULL, `description` text NULL, `id` int NOT NULL AUTO_INCREMENT, `baseId` int NULL, INDEX `IDX_1cc009e9ab2263a35544064561` (`baseId`), PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);
+        await queryRunner.query("CREATE TABLE `payment_method_translation` (`createdAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updatedAt` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), `languageCode` varchar(255) NOT NULL, `name` varchar(255) NOT NULL, `description` text NULL, `id` int NOT NULL AUTO_INCREMENT, `baseId` int NULL, INDEX `IDX_66187f782a3e71b9e0f5b50b68` (`baseId`), PRIMARY KEY (`id`)) ENGINE=InnoDB", undefined);
+        await queryRunner.query("CREATE TABLE `zone_members_region` (`zoneId` int NOT NULL, `regionId` int NOT NULL, INDEX `IDX_433f45158e4e2b2a2f344714b2` (`zoneId`), INDEX `IDX_b45b65256486a15a104e17d495` (`regionId`), PRIMARY KEY (`zoneId`, `regionId`)) ENGINE=InnoDB", undefined);
         await queryRunner.query("CREATE TABLE `stock_location_channels_channel` (`stockLocationId` int NOT NULL, `channelId` int NOT NULL, INDEX `IDX_39513fd02a573c848d23bee587` (`stockLocationId`), INDEX `IDX_ff8150fe54e56a900d5712671a` (`channelId`), PRIMARY KEY (`stockLocationId`, `channelId`)) ENGINE=InnoDB", undefined);
         await queryRunner.query("CREATE TABLE `order_fulfillments_fulfillment` (`orderId` int NOT NULL, `fulfillmentId` int NOT NULL, INDEX `IDX_f80d84d525af2ffe974e7e8ca2` (`orderId`), INDEX `IDX_4add5a5796e1582dec2877b289` (`fulfillmentId`), PRIMARY KEY (`orderId`, `fulfillmentId`)) ENGINE=InnoDB", undefined);
         await queryRunner.query("CREATE TABLE `collection_closure` (`id_ancestor` int NOT NULL, `id_descendant` int NOT NULL, INDEX `IDX_c309f8cd152bbeaea08491e0c6` (`id_ancestor`), INDEX `IDX_457784c710f8ac9396010441f6` (`id_descendant`), PRIMARY KEY (`id_ancestor`, `id_descendant`)) ENGINE=InnoDB", undefined);
@@ -69,7 +73,6 @@ export class mysqlV21680512443002 implements MigrationInterface {
         await queryRunner.query("ALTER TABLE `order_line` CHANGE `productVariantId` `productVariantId` int NOT NULL", undefined);
         await queryRunner.query("ALTER TABLE `order` ADD UNIQUE INDEX `IDX_729b3eea7ce540930dbb706949` (`code`)", undefined);
         await queryRunner.query("CREATE INDEX `IDX_00cbe87bc0d4e36758d61bd31d` ON `authentication_method` (`userId`)", undefined);
-        await queryRunner.query("CREATE INDEX `IDX_20958e5bdb4c996c18ca63d18e` ON `country_translation` (`baseId`)", undefined);
         await queryRunner.query("CREATE INDEX `IDX_afe9f917a1c82b9e9e69f7c612` ON `channel` (`defaultTaxZoneId`)", undefined);
         await queryRunner.query("CREATE INDEX `IDX_c9ca2f58d4517460435cbd8b4c` ON `channel` (`defaultShippingZoneId`)", undefined);
         await queryRunner.query("CREATE INDEX `IDX_51da53b26522dc0525762d2de8` ON `collection_asset` (`assetId`)", undefined);
@@ -121,6 +124,8 @@ export class mysqlV21680512443002 implements MigrationInterface {
         await queryRunner.query("CREATE INDEX `IDX_92f8c334ef06275f9586fd0183` ON `history_entry` (`administratorId`)", undefined);
         await queryRunner.query("CREATE INDEX `IDX_43ac602f839847fdb91101f30e` ON `history_entry` (`customerId`)", undefined);
         await queryRunner.query("CREATE INDEX `IDX_3a05127e67435b4d2332ded7c9` ON `history_entry` (`orderId`)", undefined);
+        await queryRunner.query("ALTER TABLE `region_translation` ADD CONSTRAINT `FK_1afd722b943c81310705fc3e612` FOREIGN KEY (`baseId`) REFERENCES `region`(`id`) ON DELETE CASCADE ON UPDATE NO ACTION", undefined);
+        await queryRunner.query("ALTER TABLE `region` ADD CONSTRAINT `FK_ed0c8098ce6809925a437f42aec` FOREIGN KEY (`parentId`) REFERENCES `region`(`id`) ON DELETE SET NULL ON UPDATE NO ACTION", undefined);
         await queryRunner.query("ALTER TABLE `channel` ADD CONSTRAINT `FK_af2116c7e176b6b88dceceeb74b` FOREIGN KEY (`sellerId`) REFERENCES `seller`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION", undefined);
         await queryRunner.query("ALTER TABLE `stock_level` ADD CONSTRAINT `FK_9950eae3180f39c71978748bd08` FOREIGN KEY (`productVariantId`) REFERENCES `product_variant`(`id`) ON DELETE CASCADE ON UPDATE NO ACTION", undefined);
         await queryRunner.query("ALTER TABLE `stock_level` ADD CONSTRAINT `FK_984c48572468c69661a0b7b0494` FOREIGN KEY (`stockLocationId`) REFERENCES `stock_location`(`id`) ON DELETE CASCADE ON UPDATE NO ACTION", undefined);
@@ -135,7 +140,10 @@ export class mysqlV21680512443002 implements MigrationInterface {
         await queryRunner.query("ALTER TABLE `order_line_reference` ADD CONSTRAINT `FK_30019aa65b17fe9ee9628931991` FOREIGN KEY (`refundId`) REFERENCES `refund`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION", undefined);
         await queryRunner.query("ALTER TABLE `promotion_translation` ADD CONSTRAINT `FK_1cc009e9ab2263a35544064561b` FOREIGN KEY (`baseId`) REFERENCES `promotion`(`id`) ON DELETE CASCADE ON UPDATE NO ACTION", undefined);
         await queryRunner.query("ALTER TABLE `order` ADD CONSTRAINT `FK_73a78d7df09541ac5eba620d181` FOREIGN KEY (`aggregateOrderId`) REFERENCES `order`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION", undefined);
+        await queryRunner.query("ALTER TABLE `address` ADD CONSTRAINT `FK_d87215343c3a3a67e6a0b7f3ea9` FOREIGN KEY (`countryId`) REFERENCES `region`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION", undefined);
         await queryRunner.query("ALTER TABLE `payment_method_translation` ADD CONSTRAINT `FK_66187f782a3e71b9e0f5b50b68b` FOREIGN KEY (`baseId`) REFERENCES `payment_method`(`id`) ON DELETE CASCADE ON UPDATE NO ACTION", undefined);
+        await queryRunner.query("ALTER TABLE `zone_members_region` ADD CONSTRAINT `FK_433f45158e4e2b2a2f344714b22` FOREIGN KEY (`zoneId`) REFERENCES `zone`(`id`) ON DELETE CASCADE ON UPDATE CASCADE", undefined);
+        await queryRunner.query("ALTER TABLE `zone_members_region` ADD CONSTRAINT `FK_b45b65256486a15a104e17d495c` FOREIGN KEY (`regionId`) REFERENCES `region`(`id`) ON DELETE CASCADE ON UPDATE CASCADE", undefined);
         await queryRunner.query("ALTER TABLE `stock_location_channels_channel` ADD CONSTRAINT `FK_39513fd02a573c848d23bee587d` FOREIGN KEY (`stockLocationId`) REFERENCES `stock_location`(`id`) ON DELETE CASCADE ON UPDATE CASCADE", undefined);
         await queryRunner.query("ALTER TABLE `stock_location_channels_channel` ADD CONSTRAINT `FK_ff8150fe54e56a900d5712671a0` FOREIGN KEY (`channelId`) REFERENCES `channel`(`id`) ON DELETE CASCADE ON UPDATE CASCADE", undefined);
         await queryRunner.query("ALTER TABLE `order_fulfillments_fulfillment` ADD CONSTRAINT `FK_f80d84d525af2ffe974e7e8ca29` FOREIGN KEY (`orderId`) REFERENCES `order`(`id`) ON DELETE CASCADE ON UPDATE CASCADE", undefined);
@@ -146,6 +154,17 @@ export class mysqlV21680512443002 implements MigrationInterface {
         // ======================== Step 3 ========================
         // Run the data migrations function
         await vendureV2Migrations(queryRunner);
+
+        // ======================== Step 4 (optional) ========================
+        // If you have any custom fields defined on the Country entity, you'll need to transfer the data over to the
+        // new Region entity.
+        //
+        // await queryRunner.query("UPDATE `region` SET `customFieldsMycustomfield` = `country`.`customFieldsMycustomfield` FROM `country` WHERE `region`.`id` = `country`.`id`", undefined);
+        //
+        // And if any of the custom fields are of type `localeString`, you'll need to also transfer that from the
+        // country_translation table to the region_translation table:
+
+        // await queryRunner.query("UPDATE `region_translation` SET `customFieldsMycustomfield` = `country_translation`.`customFieldsMycustomfield` FROM `country_translation` WHERE `region_translation`.`id` = `country_translation`.`id`", undefined);
     }
 
     // prettier-ignore
@@ -156,7 +175,10 @@ export class mysqlV21680512443002 implements MigrationInterface {
         await queryRunner.query("ALTER TABLE `order_fulfillments_fulfillment` DROP FOREIGN KEY `FK_f80d84d525af2ffe974e7e8ca29`", undefined);
         await queryRunner.query("ALTER TABLE `stock_location_channels_channel` DROP FOREIGN KEY `FK_ff8150fe54e56a900d5712671a0`", undefined);
         await queryRunner.query("ALTER TABLE `stock_location_channels_channel` DROP FOREIGN KEY `FK_39513fd02a573c848d23bee587d`", undefined);
+        await queryRunner.query("ALTER TABLE `zone_members_region` DROP FOREIGN KEY `FK_b45b65256486a15a104e17d495c`", undefined);
+        await queryRunner.query("ALTER TABLE `zone_members_region` DROP FOREIGN KEY `FK_433f45158e4e2b2a2f344714b22`", undefined);
         await queryRunner.query("ALTER TABLE `payment_method_translation` DROP FOREIGN KEY `FK_66187f782a3e71b9e0f5b50b68b`", undefined);
+        await queryRunner.query("ALTER TABLE `address` DROP FOREIGN KEY `FK_d87215343c3a3a67e6a0b7f3ea9`", undefined);
         await queryRunner.query("ALTER TABLE `order` DROP FOREIGN KEY `FK_73a78d7df09541ac5eba620d181`", undefined);
         await queryRunner.query("ALTER TABLE `promotion_translation` DROP FOREIGN KEY `FK_1cc009e9ab2263a35544064561b`", undefined);
         await queryRunner.query("ALTER TABLE `order_line_reference` DROP FOREIGN KEY `FK_30019aa65b17fe9ee9628931991`", undefined);
@@ -171,6 +193,8 @@ export class mysqlV21680512443002 implements MigrationInterface {
         await queryRunner.query("ALTER TABLE `stock_level` DROP FOREIGN KEY `FK_984c48572468c69661a0b7b0494`", undefined);
         await queryRunner.query("ALTER TABLE `stock_level` DROP FOREIGN KEY `FK_9950eae3180f39c71978748bd08`", undefined);
         await queryRunner.query("ALTER TABLE `channel` DROP FOREIGN KEY `FK_af2116c7e176b6b88dceceeb74b`", undefined);
+        await queryRunner.query("ALTER TABLE `region` DROP FOREIGN KEY `FK_ed0c8098ce6809925a437f42aec`", undefined);
+        await queryRunner.query("ALTER TABLE `region_translation` DROP FOREIGN KEY `FK_1afd722b943c81310705fc3e612`", undefined);
         await queryRunner.query("DROP INDEX `IDX_3a05127e67435b4d2332ded7c9` ON `history_entry`", undefined);
         await queryRunner.query("DROP INDEX `IDX_43ac602f839847fdb91101f30e` ON `history_entry`", undefined);
         await queryRunner.query("DROP INDEX `IDX_92f8c334ef06275f9586fd0183` ON `history_entry`", undefined);
@@ -222,7 +246,6 @@ export class mysqlV21680512443002 implements MigrationInterface {
         await queryRunner.query("DROP INDEX `IDX_51da53b26522dc0525762d2de8` ON `collection_asset`", undefined);
         await queryRunner.query("DROP INDEX `IDX_c9ca2f58d4517460435cbd8b4c` ON `channel`", undefined);
         await queryRunner.query("DROP INDEX `IDX_afe9f917a1c82b9e9e69f7c612` ON `channel`", undefined);
-        await queryRunner.query("DROP INDEX `IDX_20958e5bdb4c996c18ca63d18e` ON `country_translation`", undefined);
         await queryRunner.query("DROP INDEX `IDX_00cbe87bc0d4e36758d61bd31d` ON `authentication_method`", undefined);
         await queryRunner.query("ALTER TABLE `order` DROP INDEX `IDX_729b3eea7ce540930dbb706949`", undefined);
         await queryRunner.query("ALTER TABLE `order_line` CHANGE `productVariantId` `productVariantId` int NULL", undefined);
@@ -259,6 +282,9 @@ export class mysqlV21680512443002 implements MigrationInterface {
         await queryRunner.query("DROP INDEX `IDX_ff8150fe54e56a900d5712671a` ON `stock_location_channels_channel`", undefined);
         await queryRunner.query("DROP INDEX `IDX_39513fd02a573c848d23bee587` ON `stock_location_channels_channel`", undefined);
         await queryRunner.query("DROP TABLE `stock_location_channels_channel`", undefined);
+        await queryRunner.query("DROP INDEX `IDX_b45b65256486a15a104e17d495` ON `zone_members_region`", undefined);
+        await queryRunner.query("DROP INDEX `IDX_433f45158e4e2b2a2f344714b2` ON `zone_members_region`", undefined);
+        await queryRunner.query("DROP TABLE `zone_members_region`", undefined);
         await queryRunner.query("DROP INDEX `IDX_66187f782a3e71b9e0f5b50b68` ON `payment_method_translation`", undefined);
         await queryRunner.query("DROP TABLE `payment_method_translation`", undefined);
         await queryRunner.query("DROP INDEX `IDX_1cc009e9ab2263a35544064561` ON `promotion_translation`", undefined);
@@ -272,10 +298,13 @@ export class mysqlV21680512443002 implements MigrationInterface {
         await queryRunner.query("DROP INDEX `IDX_7fc20486b8cfd33dc84c96e168` ON `stock_level`", undefined);
         await queryRunner.query("DROP TABLE `stock_level`", undefined);
         await queryRunner.query("DROP TABLE `stock_location`", undefined);
+        await queryRunner.query("DROP TABLE `region`", undefined);
+        await queryRunner.query("DROP INDEX `IDX_1afd722b943c81310705fc3e61` ON `region_translation`", undefined);
+        await queryRunner.query("DROP TABLE `region_translation`", undefined);
         await queryRunner.query("DROP TABLE `seller`", undefined);
         await queryRunner.query("ALTER TABLE `stock_movement` CHANGE `stockLocationId` `orderItemId` int NULL", undefined);
+        await queryRunner.query("ALTER TABLE `address` ADD CONSTRAINT `FK_d87215343c3a3a67e6a0b7f3ea9` FOREIGN KEY (`countryId`) REFERENCES `country`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION", undefined);
         await queryRunner.query("ALTER TABLE `product_variant_price` ADD CONSTRAINT `FK_e6126cd268aea6e9b31d89af9ab` FOREIGN KEY (`variantId`) REFERENCES `product_variant`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION", undefined);
         await queryRunner.query("ALTER TABLE `stock_movement` ADD CONSTRAINT `FK_cbb0990e398bf7713aebdd38482` FOREIGN KEY (`orderItemId`) REFERENCES `order_item`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION", undefined);
     }
-
 }

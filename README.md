@@ -39,8 +39,8 @@ backup that you can easily restore prior to attempting this migration.
    The sole function of this plugin is to temporarily remove some "NOT NULL" constraints from certain columns, which allows us to run the next part of the migration.
 4. Generate a new migration file, `npm run migration:generate v2`
 5. Edit the newly-created migration file by following the comments in these examples: 
-    - [postgres](./src/migrations/1679907976277-v2-postgres.ts)
-    - [mysql](./src/migrations/1680512443002-v2-mysql.ts)
+    - [postgres](./src/migrations/1681467180672-v2-beta1-postgres.ts)
+    - [mysql](./src/migrations/1681467211945-v2-beta1-mysql.ts)
 
    In your migrations files, you'll import the `vendureV2Migrations` from `@vendure/migrate-v2`.
 6. Run the migration with `npm run migration:run`.
