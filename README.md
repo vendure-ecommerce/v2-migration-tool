@@ -15,14 +15,7 @@ backup that you can easily restore prior to attempting this migration.
 ---
 
 1. Install this package: `npm install @vendure/migrate-v2`
-2. Update all your Vendure packages to the latest v2 versions. 
-    - If you are on Windows, the current version of TypeORM (0.3.12) has [a bug](https://github.com/typeorm/typeorm/issues/9766) which will prevent migrations from running. Use the [npm "overrides"](https://docs.npmjs.com/cli/v8/configuring-npm/package-json#overrides) or [yarn "resolutions"](https://classic.yarnpkg.com/lang/en/docs/selective-version-resolutions/) feature to force v0.3.11 to be installed. e.g.
-      ```
-      {
-        "resolutions": { "typeorm": "0.3.11" } // for yarn 
-        "overrides": { "typeorm": "0.3.11" } // for npm 
-      }
-      ```
+2. Update all your Vendure packages to the latest v2 versions.
     - Note, if you run into the error `"Cannot find module '@ardatan/aggregate-error'"`, delete node_modules and the lockfile and reinstall.
 3. Add the `MigrationV2Plugin` to your plugins array:
    ```ts

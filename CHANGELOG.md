@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.3.0 (2023-06-07)
+
+* Update the migration with changes from Vendure v2.0.0-beta.3+
+
 ### v0.2.0 (2023-04-14)
 
 * Update the migration with changes from Vendure v2.0.0-beta.1

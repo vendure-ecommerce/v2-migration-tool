@@ -22,6 +22,9 @@ export async function vendureV2Migrations(queryRunner: QueryRunner) {
 
     // Transfer the Channel.currencyCode to the new Channel.defaultCurrencyCode
     await q(`UPDATE "channel" SET "defaultCurrencyCode" = "currencyCode"`);
+    // Populate the Channel.availableLanguageCodes and Channel.availableCurrencyCodes
+    await q(`UPDATE "channel" SET "availableLanguageCodes" = COALESCE("defaultLanguageCode", '')`);
+    await q(`UPDATE "channel" SET "availableCurrencyCodes" = COALESCE("defaultCurrencyCode", '')`);
 
     // Create a default StockLocation
     const defaultStockLocationName = "Default Stock Location";
