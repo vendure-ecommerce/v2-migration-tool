@@ -1,6 +1,6 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-// In your migration, you would import this from '@vendure/migration-v2'
+// In your migration, you would import this from '@vendure/migrate-v2'
 import {vendureV2Migrations} from "../lib/run-migrations";
 
 export class v21681467180672 implements MigrationInterface {
