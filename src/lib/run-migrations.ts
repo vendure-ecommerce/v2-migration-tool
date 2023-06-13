@@ -35,12 +35,13 @@ export async function vendureV2Migrations(queryRunner: QueryRunner, schemaName?:
     let defaultStockLocationId: string | number;
     if (queryRunner.connection.options.type === "mysql") {
         // MySQL does not support the RETURNING statement (MariaDB does)
-        const [defaultStockLocation] = await queryRunner.query(
+        // See https://github.com/vendure-ecommerce/v2-migration-tool/issues/4
+        const result = await queryRunner.query(
             `INSERT INTO stock_location (createdAt, updatedAt, name, description) 
             VALUES (CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), ?, '')`,
             [defaultStockLocationName]
         );
-        defaultStockLocationId = defaultStockLocation.insertId;
+        defaultStockLocationId = result.insertId;
     } else {
         const [{id}] = await q(
             `INSERT INTO "stock_location" ("createdAt", "updatedAt", "name", "description") 
@@ -249,10 +250,13 @@ export async function vendureV2Migrations(queryRunner: QueryRunner, schemaName?:
         } else {
             // Update the Cancellation to set the quantity to the number of OrderItems in the OrderLine
             await q(
+                // We have this extra nested SELECT because MySQL doesn't allow a subquery in an UPDATE statement to reference the table being updated,
+                // resulting in the error: "You can't specify target table 'stock_movement' for update in FROM clause"
+                // See https://stackoverflow.com/a/9843719/772859
                 `UPDATE "stock_movement" 
                              SET "orderLineId" = :orderLineId, 
-                                 "quantity" = (SELECT COUNT(*) FROM "order_item" AS "oi" INNER JOIN "stock_movement" AS "sm" 
-                                               ON "oi"."lineId" = :orderLineId WHERE "sm"."type" = 'CANCELLATION')
+                                 "quantity" = (SELECT "cnt" FROM (SELECT COUNT(*) as "cnt" FROM "order_item" AS "oi" INNER JOIN "stock_movement" AS "sm" 
+                                               ON "oi"."lineId" = :orderLineId WHERE "sm"."type" = 'CANCELLATION') as "c")
                                   WHERE "stock_movement"."id" = :cancellationId`,
                 {
                     orderLineId: cancellation.orderLineId,
@@ -279,10 +283,13 @@ export async function vendureV2Migrations(queryRunner: QueryRunner, schemaName?:
         } else {
             // Update the Release to set the quantity to the number of OrderItems in the OrderLine
             await q(
+                // We have this extra nested SELECT because MySQL doesn't allow a subquery in an UPDATE statement to reference the table being updated,
+                // resulting in the error: "You can't specify target table 'stock_movement' for update in FROM clause"
+                // See https://stackoverflow.com/a/9843719/772859
                 `UPDATE "stock_movement" 
                              SET "orderLineId" = :orderLineId, 
-                                 "quantity" = (SELECT COUNT(*) FROM "order_item" AS "oi" INNER JOIN "stock_movement" AS "sm" 
-                                               ON "oi"."lineId" = :orderLineId WHERE "sm"."type" = 'RELEASE')
+                                 "quantity" = (SELECT "cnt" FROM (SELECT COUNT(*) as "cnt" FROM "order_item" AS "oi" INNER JOIN "stock_movement" AS "sm" 
+                                               ON "oi"."lineId" = :orderLineId WHERE "sm"."type" = 'RELEASE') as "c")
                              WHERE "stock_movement"."id" = :releaseId`,
                 {orderLineId: release.orderLineId, releaseId: release.id}
             );

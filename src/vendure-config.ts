@@ -13,7 +13,12 @@ import path from "path";
 const IS_DEV = process.env.APP_ENV === "dev";
 const isVendureV2 =
     require("../package.json").devDependencies["@vendure/core"].startsWith("2");
-const DB = process.env.DB === "mysql" ? "mysql" : "postgres";
+const DB =
+    process.env.DB === "mysql"
+        ? "mysql"
+        : process.env.DB === "mariadb"
+        ? "mariadb"
+        : "postgres";
 
 export const config: VendureConfig = {
     apiOptions: {
@@ -88,7 +93,7 @@ export const config: VendureConfig = {
     ],
 };
 
-function getDbConnectionOption(db: "postgres" | "mysql") {
+function getDbConnectionOption(db: "postgres" | "mysql" | "mariadb") {
     if (db === "postgres") {
         return {
             type: "postgres" as const,
@@ -101,7 +106,7 @@ function getDbConnectionOption(db: "postgres" | "mysql") {
         };
     } else {
         return {
-            type: "mariadb" as const,
+            type: db,
             database: process.env.MYSQL_DB_NAME,
             host: process.env.MYSQL_DB_HOST,
             port: +process.env.MYSQL_DB_PORT,
