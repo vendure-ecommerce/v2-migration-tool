@@ -32,11 +32,23 @@ export async function vendureV2Migrations(queryRunner: QueryRunner, schemaName?:
 
     // Create a default StockLocation
     const defaultStockLocationName = "Default Stock Location";
-    const [{id: defaultStockLocationId}] = await q(
-        `INSERT INTO "stock_location" ("createdAt", "updatedAt", "name", "description") 
+    let defaultStockLocationId: string | number;
+    if (queryRunner.connection.options.type === "mysql") {
+        // MySQL does not support the RETURNING statement (MariaDB does)
+        const [defaultStockLocation] = await queryRunner.query(
+            `INSERT INTO stock_location (createdAt, updatedAt, name, description) 
+            VALUES (CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), ?, '')`,
+            [defaultStockLocationName]
+        );
+        defaultStockLocationId = defaultStockLocation.insertId;
+    } else {
+        const [{id}] = await q(
+            `INSERT INTO "stock_location" ("createdAt", "updatedAt", "name", "description") 
                  VALUES (DEFAULT, DEFAULT, :defaultStockLocationName, '') RETURNING id`,
-        {defaultStockLocationName}
-    );
+            {defaultStockLocationName}
+        );
+        defaultStockLocationId = id;
+    }
     console.log(
         `Created default StockLocation with id ${defaultStockLocationId}`
     );

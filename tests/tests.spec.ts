@@ -444,7 +444,7 @@ describe("migration tests", () => {
                     }
                 }
             `);
-            expect(order.payments[0].refunds).toEqual([
+            expect(order.payments[0].refunds.sort((a: any, b: any) => a.id < b.id ? -1 : 1)).toEqual([
                 {
                     id: "1",
                     total: 140292,
@@ -479,7 +479,7 @@ describe("migration tests", () => {
                     }
                 }
             `);
-            expect(order.payments[0].refunds).toEqual([
+            expect(order.payments[0].refunds.sort((a: any, b: any) => a.id < b.id ? -1 : 1)).toEqual([
                 {
                     id: "1",
                     total: 140292,
