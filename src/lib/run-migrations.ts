@@ -1,7 +1,7 @@
 import {QueryRunner} from "typeorm";
 import {queryRunnerFactory} from "./utils";
 
-export async function vendureV2Migrations(queryRunner: QueryRunner) {
+export async function vendureV2Migrations(queryRunner: QueryRunner, schemaName?: string) {
     const isMysql =
         queryRunner.connection.options.type === "mysql" ||
         queryRunner.connection.options.type === "mariadb";
@@ -9,12 +9,16 @@ export async function vendureV2Migrations(queryRunner: QueryRunner) {
 
     console.log(`Starting the database migration to Vendure v2!`);
 
+    if (!isMysql && schemaName) {
+        await q(`SET search_path TO "${schemaName}"`);
+    }
+
     // Set a default language code for the now-translatable entities, Promotion and PaymentMethod
     const languageCode = "en";
 
     // Transfer Promotion name to new translation table
-    await q(`INSERT INTO "promotion_translation" ("createdAt", "updatedAt", "languageCode", "name", "baseId") 
-                     SELECT "createdAt", "updatedAt", '${languageCode}', "name", "id" FROM "promotion"`);
+    await q(`INSERT INTO "promotion_translation" ("createdAt", "updatedAt", "languageCode", "name", "description", "baseId") 
+                     SELECT "createdAt", "updatedAt", '${languageCode}', "name", '', "id" FROM "promotion"`);
     // Transfer PaymentMethod name and description to new translation table
     await q(`INSERT INTO "payment_method_translation" ("createdAt", "updatedAt", "languageCode", "name", "description", "baseId")
                      SELECT "createdAt", "updatedAt", '${languageCode}', "name", "description", "id" FROM "payment_method"`);
@@ -306,7 +310,7 @@ export async function vendureV2Migrations(queryRunner: QueryRunner) {
 
     // Also add a corresponding row to the order_fulfillments_fulfillment table
     await q(`INSERT INTO order_fulfillments_fulfillment ("orderId", "fulfillmentId")
-                        SELECT ol."orderId" AS "orderId",
+                        SELECT DISTINCT ol."orderId" AS "orderId",
                                olr."fulfillmentId" AS "fulfillmentId"
                         FROM "order_line" ol
                         JOIN "order_line_reference" olr ON olr."orderLineId" = ol."id"

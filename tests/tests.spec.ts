@@ -83,12 +83,14 @@ describe("migration tests", () => {
             const { channels } = await adminClient.query(gql`
                 query {
                     channels {
-                        id
-                        currencyCode
+                        items {
+                            id
+                            currencyCode
+                        }
                     }
                 }
             `);
-            expect(channels).toEqual([
+            expect(channels.items).toEqual([
                 {
                     id: "1",
                     currencyCode: "USD",
