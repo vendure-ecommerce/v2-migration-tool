@@ -1,5 +1,13 @@
 # Changelog
 
+### v0.4.0 (2023-06-13)
+
+* Update the migration with changes from Vendure v2.0.0 final release
+* Add support for non-public postgres schema names
+* Fix various issues with MySQL
+* Fix issue with promotion_translation description
+* Fix error when duplicates exist on fulfillments
+
 ### v0.3.0 (2023-06-07)
 
 * Update the migration with changes from Vendure v2.0.0-beta.3+
