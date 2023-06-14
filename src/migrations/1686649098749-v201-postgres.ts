@@ -78,6 +78,23 @@ export class v2011686649098749 implements MigrationInterface {
         // await queryRunner.query(`ALTER TABLE "promotion" DROP COLUMN "name"`, undefined);
         // await queryRunner.query(`ALTER TABLE "payment_method" DROP COLUMN "name"`, undefined);
         // await queryRunner.query(`ALTER TABLE "payment_method" DROP COLUMN "description"`, undefined);
+
+        // ==================== Step 3 (optional) ====================
+        // If you do not have custom fields defined which link to custom entities
+        // (i.e. have the type: "relation"), skip to the next step.
+        //
+        // Due to a TypeORM update, customField columns should be prefixed with "customFields..."
+        // Your generated migration file may containt commands to drop legacy named
+        // custom field columns, and create new ones with the correct convention
+        // (prefixed with customFields...).
+        //
+        // To avoid losing data in the legacy named custom field columns,
+        // comment out all "DROP COLUMN" statements targeting the custom field columns, such as the one below "metaDataId".
+        // await queryRunner.query(`ALTER TABLE "order_line" DROP COLUMN "metaDataId"`, undefined);
+        //
+        // We will drop these columns later, but first we need to create new columns,
+        // transfer data to them, then drop the deprecated ones.
+
         await queryRunner.query(`ALTER TABLE "channel" ADD "description" character varying DEFAULT ''`, undefined);
         await queryRunner.query(`ALTER TABLE "channel" ADD "availableLanguageCodes" text`, undefined);
         await queryRunner.query(`ALTER TABLE "channel" ADD "defaultCurrencyCode" character varying`, undefined);
@@ -182,8 +199,8 @@ export class v2011686649098749 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "promotion_translation" ADD CONSTRAINT "FK_1cc009e9ab2263a35544064561b" FOREIGN KEY ("baseId") REFERENCES "promotion"("id") ON DELETE CASCADE ON UPDATE NO ACTION`, undefined);
         await queryRunner.query(`ALTER TABLE "order" ADD CONSTRAINT "FK_73a78d7df09541ac5eba620d181" FOREIGN KEY ("aggregateOrderId") REFERENCES "order"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`, undefined);
 
-        // ======================== Step 3 ========================
-        // This line needs to be commented out, and moved to after step 4, otherwise
+        // ======================== Step 4 ========================
+        // This line needs to be commented out, and moved to after step 5, otherwise
         // the migration fails with a foreign key constraint error.
         // await queryRunner.query(`ALTER TABLE "address" ADD CONSTRAINT "FK_d87215343c3a3a67e6a0b7f3ea9" FOREIGN KEY ("countryId") REFERENCES "region"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`, undefined);
 
@@ -198,7 +215,7 @@ export class v2011686649098749 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "collection_closure" ADD CONSTRAINT "FK_457784c710f8ac9396010441f6c" FOREIGN KEY ("id_descendant") REFERENCES "collection"("id") ON DELETE CASCADE ON UPDATE NO ACTION`, undefined);
 
 
-        // ======================== Step 4 ========================
+        // ======================== Step 5 ========================
         // Run the data migrations function
         // Note: if you are using a custom schema (not "public") with postgres,
         // you'll need to pass the schema name as the second argument to the function.
@@ -206,11 +223,30 @@ export class v2011686649098749 implements MigrationInterface {
         //   await vendureV2Migrations(queryRunner, 'my_schema');
         await vendureV2Migrations(queryRunner);
 
-        // ======================== Step 5 ========================
-        // Add the line that we commented out in step 3
+        // ======================== Step 6 ========================
+        // Add the line that we commented out in step 4
         await queryRunner.query(`ALTER TABLE "address" ADD CONSTRAINT "FK_d87215343c3a3a67e6a0b7f3ea9" FOREIGN KEY ("countryId") REFERENCES "region"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`, undefined);
 
-        // ======================== Step 6 (optional) ========================
+        // ======================== Step 7 (optional) ========================
+        // Implement this step if you implemented step 3 (optional).
+        // In order to move data from the deprecated custom field column (of type "relation")
+        // to the new one with the prefix "customFields...", run a query similar to the one below for all
+        // customField definitions you have (of type "relation")
+        // - await queryRunner.query(`UPDATE "order_line" SET customFieldsMetadataid = metaDataId;`);
+        // Replace "Metadataid" and "metaDataId" with your custom field names.
+        // This will copy the column metaDataId into customFieldsMetadataid.
+
+        // ======================== Step 8 (optional) ========================
+        // Implement this if you followed step #3 and step #7.
+        // Finally, after copying data from the deprecated custom field column
+        // to the new column, we can now drop the deprecated one.
+        // Adjust the query below to drop all custom fields with type "relation"
+        // which had a legacy column name (without the customFields prefix).
+        //
+        // await queryRunner.query(ALTER TABLE "order_line" DROP COLUMN "metaDataId", undefined);
+
+
+        // ======================== Step 9 (optional) ========================
         // If you have any custom fields defined on the Country entity, you'll need to transfer the data over to the
         // new Region entity.
         //
