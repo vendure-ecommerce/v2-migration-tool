@@ -57,6 +57,31 @@ export class v201Mysql1686655918823 implements MigrationInterface {
         // await queryRunner.query("ALTER TABLE `promotion` DROP COLUMN `name`", undefined);
         // await queryRunner.query("ALTER TABLE `payment_method` DROP COLUMN `name`", undefined);
         // await queryRunner.query("ALTER TABLE `payment_method` DROP COLUMN `description`", undefined);
+
+
+        // ==================== Step 3 (optional) ====================
+        // If you do not have custom fields defined which link to custom entities
+        // (i.e. have the type: "relation"), skip to the next step.
+        //
+        // Due to a TypeORM update, customField relation columns will be prefixed with "customFields..."
+        // Your generated migration file may contain commands to drop legacy named
+        // custom field columns, and create new ones with the correct convention.
+        //
+        // However, rather than dropping the columns, we will instead rename them. For example, if we have
+        // a custom field named `metadata` which links to the `Metadata` entity, you would see a statement like this:
+        //
+        // await queryRunner.query("ALTER TABLE `order_line` DROP COLUMN `metaDataId`", undefined);
+        //
+        // We will rename this column to "customFieldsMetadataId" instead:
+        //
+        // await queryRunner.query("ALTER TABLE `order_line` RENAME COLUMN `metaDataId` TO `customFieldsMetadataid`", undefined);
+        //
+        // The naming convention for the column name is: `customFields` + (custom field name with first letter capitalized, rest lowercase) + 'id'
+        //
+        // examples:
+        //   custom field name: `relatedProduct` -> column name: `customFieldsRelatedproductid`
+        //   custom field name: `metadata` -> column name: `customFieldsMetadataid`
+
         await queryRunner.query("ALTER TABLE `channel` ADD `description` varchar(255) NULL DEFAULT ''", undefined);
         await queryRunner.query("ALTER TABLE `channel` ADD `availableLanguageCodes` text NULL", undefined);
         await queryRunner.query("ALTER TABLE `channel` ADD `defaultCurrencyCode` varchar(255) NULL", undefined);
