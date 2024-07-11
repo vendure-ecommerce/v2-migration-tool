@@ -70,7 +70,7 @@ export class v2011686649098749 implements MigrationInterface {
 
         // ==================== Step 2 ====================
         // Comment out the following "DROP COLUMN" queries. We still require these columns for the migration
-        // of existing data, and will drop them in a later step.
+        // of existing data, and these will be automatically dropped by the V2 migration plugin later.
         //
         // await queryRunner.query(`ALTER TABLE "channel" DROP COLUMN "currencyCode"`, undefined);
         // await queryRunner.query(`ALTER TABLE "product_variant" DROP COLUMN "stockOnHand"`, undefined);
@@ -83,7 +83,7 @@ export class v2011686649098749 implements MigrationInterface {
         // If you do not have custom fields defined which link to custom entities
         // (i.e. have the type: "relation"), skip to the next step.
         //
-        // Due to a TypeORM update, customField relation columns will be prefixed with "customFields..."
+        // Due to a TypeORM update, customField relation (important: only the ones that are not a list) columns will be prefixed with "customFields..."
         // Your generated migration file may contain commands to drop legacy named
         // custom field columns, and create new ones with the correct convention.
         //
